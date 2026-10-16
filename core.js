@@ -1,4 +1,5 @@
-export function cleanName(s){return s.trim().replace(/^2028\s*/, '').replace(/\d+$/, '').trim();}
+const knownNameCorrections={'王祉茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁'};
+export function cleanName(s){const name=s.trim().replace(/^2028\s*/, '').replace(/\d+$/, '').trim();return knownNameCorrections[name]||name;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班'];
 export function matchClass(attendees,rosterText){
  const present=new Set(attendees.map(cleanName));
