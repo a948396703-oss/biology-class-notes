@@ -38,7 +38,7 @@ export function randomPraise(grouped,random=Math.random){
  return grouped?[pool.slice(0,first),pool.slice(first,3)]:[pool.slice(0,first)];
 }
 export function makeReport({className,date,teacher,names,chapters,homework,mode,knowledge,note}){
- if(!className.trim()||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
+ if((names.length>1&&!className.trim())||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
  const praise=randomPraise(names.length>5);
