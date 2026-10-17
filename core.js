@@ -42,7 +42,7 @@ export function makeReport({className,date,teacher,names,chapters,homework,mode,
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
  const praise=randomPraise(names.length>5);
- const intro=`${names.join('、')}${names.length}名同学本节课${mode}了${content}的相关内容。`;
+ const intro=names.length===1?`本节课围绕${content}进行了${mode}，学习了相关内容。`:`${names.join('、')}${names.length}名同学本节课${mode}了${content}的相关内容。`;
  let feedback;
  if(names.length<=5){
   feedback=[intro,`课堂上${praise[0].join('，')}，值得表扬。`,knowledge,note.trim(), '课后结合今天的作业再巩固一下，继续加油！'].filter(Boolean).join('');
