@@ -31,7 +31,7 @@ export function readPriceRows(blocks,top,bottom) {
  });
  const rows=[];
  for(const l of lines){
-  const match=l.text.replace(/\s/g,'').match(/2028([\u4e00-\u9fff·]{2,8})\d*/);
+  const match=l.text.replace(/\s/g,'').match(/20\d{2}([\u4e00-\u9fff·]{2,8})\d*/);
   if(!match)continue;
   const center=(l.bbox.x0+l.bbox.x1)/2;
   const candidates=prices.filter(p=>!p.used&&p.bbox.y1<=l.bbox.y0+8&&l.bbox.y0-p.bbox.y1<Math.max(90,(l.bbox.y1-l.bbox.y0)*4)&&Math.abs((p.bbox.x0+p.bbox.x1)/2-center)<Math.max(65,(l.bbox.x1-l.bbox.x0)*.6))

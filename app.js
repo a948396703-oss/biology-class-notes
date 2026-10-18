@@ -5,6 +5,8 @@ import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarn
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 const income=mountIncome();
+const singleClassHint=document.createElement('p');singleClassHint.className='hint';singleClassHint.hidden=true;$('className').closest('label').before(singleClassHint);
+$('names').closest('label').nextElementSibling.textContent='自动去掉姓名前的年份和末尾数字。请核对姓名、生僻字和人数。';
 $('screens').addEventListener('change',()=>{if($('screens').files.length)income.reset();});
 function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级，请从四个班级中选择。');}
 $('className').onchange=()=>status('class-hint','已手动选择班级。');
@@ -16,7 +18,7 @@ const now=new Date();$('date').value=`${now.getFullYear()}-${String(now.getMonth
 function chapterOptions(){const b=books[Number($('book').value)];$('chapter').replaceChildren(new Option('请选择章节',''));b[1].forEach((c,i)=>$('chapter').add(new Option(`第${i+1}章 ${c[0]}`,i)));chosen=chosen.filter(i=>b[1][i]);renderChapters();}
 function renderChapters(){$('chapters').replaceChildren();chosen.forEach(i=>{const b=document.createElement('button');b.textContent=`第${i+1}章 ${books[+$('book').value][1][i][0]} ×`;b.onclick=()=>{chosen=chosen.filter(x=>x!==i);renderChapters();persist()};$('chapters').append(b)});}
 chapterOptions();$('book').onchange=()=>{chosen=[];chapterOptions();persist()};$('chapter').onchange=()=>{if($('chapter').value==='')return;const n=+$('chapter').value;if(!chosen.includes(n))chosen.push(n);chosen.sort((a,b)=>a-b);renderChapters();persist();$('chapter').value=''};
-function updateCount(){const n=namesFrom($('names').value).length;status('count',`${n} 人`);$('confirmed').checked=false;const warning=countWarning(expectedCount,n);status('attendance-warning',warning);$('attendance-warning').hidden=!warning;}
+function updateCount(){const names=namesFrom($('names').value),n=names.length;status('count',`${n} 人`);$('confirmed').checked=false;const warning=countWarning(expectedCount,n);status('attendance-warning',warning);$('attendance-warning').hidden=!warning;$('className').closest('label').hidden=n===1;singleClassHint.hidden=n!==1;singleClassHint.textContent=n===1?`单人课 · ${names[0]}，无需选择班级。`:'';}
 $('names').oninput=updateCount;$('names').onblur=()=>{$('names').value=namesFrom($('names').value).join('、')};fields.filter(x=>x!=='book').forEach(k=>$(k).onchange=persist);
 $('parse').onclick=()=>{const r=parseAttendance($('ocr-text').value);expectedCount=r.count;$('names').value=r.names.join('、');applyClass($('ocr-text').value);if(r.date)$('date').value=r.date;updateCount();status('ocr-status',r.names.length?`提取到 ${r.names.length} 位学生${r.count!==null?`，截图标记到课 ${r.count} 人`:''}。请逐一核对。`:'未能可靠提取到课名单，请在“到课学生”中手动填写。');};
 async function loadOCR(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='vendor/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('识别资源加载失败，请检查网络或粘贴截图文字。'));document.head.append(s)});}

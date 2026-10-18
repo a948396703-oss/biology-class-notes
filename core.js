@@ -1,5 +1,5 @@
-const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟'};
-export function cleanName(s){const name=s.trim().replace(/^2028\s*/, '').replace(/\d+$/, '').trim();return knownNameCorrections[name]||name;}
+const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
+export function cleanName(s){const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();return knownNameCorrections[name]||name;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班'];
 export function matchClass(attendees,rosterText){
  const present=new Set(attendees.map(cleanName));
@@ -8,7 +8,7 @@ export function matchClass(attendees,rosterText){
  const normalized=rosterText.replace(/(?<=[\u4e00-\u9fff]) +(?=[\u4e00-\u9fff])/g,'');
  const leaveStart=normalized.search(/请\s*假|假/);
  const leave=leaveStart<0?'':normalized.slice(leaveStart).split(/缺\s*勤/)[0];
- const names=new Set([...leave.matchAll(/2028\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]));
+ const names=new Set([...leave.matchAll(/20\d{2}\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]));
  const absent=classNames.filter(c=>names.has(c.slice(0,-1)));
  if(absent.length)return {candidates:absent,source:'请假名单'};
  // OCR可能漏掉竖排“请假”二字，但页头班级标题仍保留班主任名。
@@ -30,7 +30,7 @@ export function parseAttendance(text){
  const start=text.search(/到\s*课/); const tail=start<0?'':text.slice(start);
  const stop=tail.search(/请\s*假|假|缺\s*勤/);const area=stop<0?tail:tail.slice(0,stop);
  const count=area.match(/到\s*课\s*(\d+)/);
- const names=[...area.matchAll(/2028\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]);
+ const names=[...area.matchAll(/20\d{2}\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]);
  return {names:[...new Set(names)],count:count?Number(count[1]):null,date:date?`${date[1]}-${date[2].padStart(2,'0')}-${date[3].padStart(2,'0')}`:'',found:start>=0};
 }
 export const praisePool=['听课比较专注','参与课堂交流的态度积极','思考问题比较主动','学习态度认真踏实','梳理知识的思路比较清晰','面对新知识愿意尝试','学习过程中有耐心','对知识之间的联系比较留心'];
