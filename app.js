@@ -1,7 +1,8 @@
-import {books,pickKnowledge} from './catalog.js';
-import {mountIncome,readPriceRows} from './income.js';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass} from './core.js';
+import {books,pickKnowledge} from './catalog.js?v=20261018.2';
+import {mountIncome,readPriceRows} from './income.js?v=20261018.2';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261018.2';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass} from './core.js?v=20261018.2';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.18.2 · 支持不同年份名单';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 const income=mountIncome();
@@ -63,4 +64,4 @@ const generateReport=$('generate').onclick;
 $('generate').onclick=()=>{status('form-status','');generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
 $('copy').onclick=async()=>{if(!$('report').value)return status('report-status','请先生成报告。');try{await navigator.clipboard.writeText($('report').value);status('report-status','已复制，可以粘贴发送。');}catch{$('report').focus();$('report').select();status('report-status','请长按选中的文字，选择复制。')}};
 function renderHistory(){$('history').replaceChildren();if(!history.length){$('history').textContent='保存后的报告会出现在这里。';return;}history.forEach((h,i)=>{const row=document.createElement('div'),b=document.createElement('button'),del=document.createElement('button');b.textContent=h.title;b.onclick=()=>{$('report').value=h.text;status('report-status','已打开历史报告。')};del.textContent='删除';del.setAttribute('aria-label',`删除 ${h.title}`);del.onclick=()=>{if(confirm('删除这份历史报告？')){history.splice(i,1);try{localStorage.setItem('bio-history',JSON.stringify(history));}catch{}renderHistory()}};row.append(b,del);$('history').append(row)})}
-$('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${$('className').value||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+$('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${$('className').value||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});

@@ -1,2 +1,9 @@
-const CACHE='bio-notes-v11-net-income';const ASSETS=['./','./index.html','./style.css','./income.css','./app.js','./core.js','./catalog.js','./income.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bio-notes-')&&k!==CACHE).map(k=>caches.delete(k))))));self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;e.respondWith(fetch(e.request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request)))});
+const CACHE='bio-notes-v12-versioned';
+const ASSETS=['./','./index.html','./style.css?v=20261018.2','./income.css?v=20261018.2','./app.js?v=20261018.2','./core.js?v=20261018.2','./catalog.js?v=20261018.2','./income.js?v=20261018.2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bio-notes-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{
+ if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
+ e.respondWith(fetch(e.request,{cache:e.request.mode==='navigate'?'no-cache':'default'}).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));}return r;}).catch(async()=>await caches.match(e.request)||(e.request.mode==='navigate'?await caches.match('./index.html'):Response.error())));
+});
 

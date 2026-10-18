@@ -1,4 +1,4 @@
-import {cleanName} from './core.js';
+import {cleanName} from './core.js?v=20261018.2';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
