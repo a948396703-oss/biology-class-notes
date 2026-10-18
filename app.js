@@ -20,7 +20,19 @@ function updateCount(){const n=namesFrom($('names').value).length;status('count'
 $('names').oninput=updateCount;$('names').onblur=()=>{$('names').value=namesFrom($('names').value).join('、')};fields.filter(x=>x!=='book').forEach(k=>$(k).onchange=persist);
 $('parse').onclick=()=>{const r=parseAttendance($('ocr-text').value);expectedCount=r.count;$('names').value=r.names.join('、');applyClass($('ocr-text').value);if(r.date)$('date').value=r.date;updateCount();status('ocr-status',r.names.length?`提取到 ${r.names.length} 位学生${r.count!==null?`，截图标记到课 ${r.count} 人`:''}。请逐一核对。`:'未能可靠提取到课名单，请在“到课学生”中手动填写。');};
 async function loadOCR(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='vendor/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('识别资源加载失败，请检查网络或粘贴截图文字。'));document.head.append(s)});}
-async function imageCanvas(file){const img=new Image(),url=URL.createObjectURL(file);try{await new Promise((r,j)=>{img.onload=r;img.onerror=j;img.src=url});const c=document.createElement('canvas'),scale=Math.min(1,1600/img.width);c.width=img.width*scale;c.height=img.height*scale;c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;}finally{URL.revokeObjectURL(url)}}
+async function imageCanvas(file){
+ const img=new Image(),url=URL.createObjectURL(file);
+ try{
+  await new Promise((r,j)=>{img.onload=r;img.onerror=j;img.src=url});
+  const source=document.createElement('canvas');source.width=img.width;source.height=img.height;const ctx=source.getContext('2d');ctx.drawImage(img,0,0);
+  // 转发或标注的截图常有左右留白，先根据蓝色页头去掉边框。
+  const pixels=ctx.getImageData(0,Math.floor(img.height*.15),img.width,1).data;let left=img.width,right=-1;
+  for(let x=0;x<img.width;x++){const i=x*4,r=pixels[i],g=pixels[i+1],b=pixels[i+2];if(b>120&&b>r*1.4&&g>r*1.2){left=Math.min(left,x);right=x;}}
+  if(right-left<img.width*.45){left=0;right=img.width-1;}
+  const width=right-left+1,c=document.createElement('canvas'),scale=width<1000?1280/width:Math.min(1,1600/width);
+  c.width=Math.round(width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(source,left,0,width,img.height,0,0,c.width,c.height);return c;
+ }finally{URL.revokeObjectURL(url)}
+}
 function attendanceCrop(c){const ctx=c.getContext('2d'),p=ctx.getImageData(0,0,c.width,c.height).data;let start=-1,end=-1,run=0,tagBottom=-1;for(let y=Math.floor(c.height*.12);y<c.height;y++){let blue=0,purple=0;for(let x=Math.floor(c.width*.04);x<c.width*.13;x++){const i=(y*c.width+x)*4,r=p[i],g=p[i+1],b=p[i+2];if(b>120&&b>r*1.4&&g>r*1.2)blue++;if(b>150&&r>90&&r>g*1.2)purple++;}const width=c.width*.09;const right=(y*c.width+Math.floor(c.width*.9))*4;const white=p[right]>225&&p[right+1]>225&&p[right+2]>225;if(blue>width*.6&&white){run++;if(run>15&&start<0)start=y-run;if(start>=0)tagBottom=y;}else run=0;if(start>=0&&y>start+50&&purple>width*.6){end=y;break;}}
  if(start<0||end<0)return null;const out=document.createElement('canvas');out.width=c.width;out.height=end-start;out.getContext('2d').drawImage(c,0,start,c.width,end-start,0,0,c.width,end-start);return {canvas:out,top:start,bottom:end,tagBottom};}
 $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.length)return;$('screens').disabled=true;$('generate').disabled=true;$('previews').replaceChildren();$('names').value='';$('className').value='';status('class-hint','识别完成后自动匹配班级。');expectedCount=null;updateCount();let worker;let recognized=[];try{status('ocr-status','正在准备本机文字识别，首次加载可能需要一些时间…');await loadOCR();worker=await Tesseract.createWorker('chi_sim',1,{workerPath:'vendor/worker.min.js',corePath:'vendor/core',langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0',logger:m=>{if(m.status==='recognizing text')status('ocr-status',`正在识别文字 ${Math.round(m.progress*100)}%…`);}});await worker.setParameters({tessedit_pageseg_mode:'11'});
