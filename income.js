@@ -50,10 +50,13 @@ export function mountIncome(){
  <p id="income-milestone" class="hint"></p><progress id="income-progress" max="100000" value="0" aria-label="下一个千元里程碑"></progress>
  <p id="income-rate" class="income-rate">每节 80 分钟 · 等待记录</p><p id="income-compare" class="hint">设置自己的参考时薪，即可比较。</p>
  <label>参考时薪（元 / 小时，选填）<input id="income-reference" inputmode="decimal" type="number" min="0" step="0.01" placeholder="例如 150"></label><p class="hint">这是你设置的目标基准，不代表市场平均水平；时薪仅按授课80分钟计算。</p>
- <details id="income-inputs" open><summary>本节金额 · 核对后自动记账</summary><label>开课时间（截图自动填写，可修改）<input id="income-time" type="time"></label><div id="income-prices"></div><p class="hint">仅计算到课学生。缺失金额请补填；金额未齐时可生成报告，但暂不记账。同一日期、时间和班级只记一笔；同日另有一节课请填写不同时间。</p></details>
+ <details id="income-inputs"><summary>自动识别信息 · 需要时修改</summary><label>开课时间（截图自动填写，可修改）<input id="income-time" type="time"></label><div id="income-prices"></div><p class="hint">仅计算到课学生。缺失金额请补填；金额未齐时可生成报告，但暂不记账。同一日期、时间和班级只记一笔；同日另有一节课请填写不同时间。</p></details>
  <p id="income-status" class="hint" role="status"></p><details><summary>账目明细与导出</summary><button id="income-export" class="secondary">导出 CSV</button><div id="income-list"></div><p class="hint">截图课费合计后按47%计算到手薪水，时薪也按到手金额计算。旧账目自动按47%重新折算。账目保存在当前浏览器，建议定期导出备份。</p></details>`;
  document.querySelector('aside').prepend(panel);
  document.querySelector('.form .card').append($('income-inputs'));
+ const metadata=$('income-inputs'),timeLabel=$('income-time').closest('label');
+ for(const id of ['date','teacher'])metadata.insertBefore($(id).closest('label'),timeLabel);
+ $('className').closest('.grid').style.gridTemplateColumns='1fr';
  let entries=[],priceMap=new Map(),conflicts=new Set(),last=null,amountFrame=0;
  try{entries=JSON.parse(localStorage.getItem('bio-income')||'[]');if(!Array.isArray(entries))entries=[];entries=entries.map(normalizeIncome);$('income-reference').value=localStorage.getItem('bio-income-reference')||'';}catch{}
  const write=next=>{localStorage.setItem('bio-income',JSON.stringify(next));entries=next;};

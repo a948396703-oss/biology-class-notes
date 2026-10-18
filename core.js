@@ -9,7 +9,12 @@ export function matchClass(attendees,rosterText){
  const leaveStart=normalized.search(/请\s*假|假/);
  const leave=leaveStart<0?'':normalized.slice(leaveStart).split(/缺\s*勤/)[0];
  const names=new Set([...leave.matchAll(/2028\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]));
- return {candidates:classNames.filter(c=>names.has(c.slice(0,-1))),source:'请假名单'};
+ const absent=classNames.filter(c=>names.has(c.slice(0,-1)));
+ if(absent.length)return {candidates:absent,source:'请假名单'};
+ // OCR可能漏掉竖排“请假”二字，但页头班级标题仍保留班主任名。
+ const dateStart=normalized.search(/20\d{2}[-/.]\d{1,2}[-/.]\d{1,2}/);
+ const header=dateStart<0?'':normalized.slice(0,dateStart);
+ return {candidates:classNames.filter(c=>header.includes(c.slice(0,-1))),source:'截图班级标题'};
 }
 export function namesFrom(s){return [...new Set(s.split(/[\s,，、;；]+/).map(cleanName).filter(Boolean))];}
 export function positionedNames(blocks,top,bottom){
