@@ -1,4 +1,4 @@
-const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟'};
+const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟'};
 export function cleanName(s){const name=s.trim().replace(/^2028\s*/, '').replace(/\d+$/, '').trim();return knownNameCorrections[name]||name;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班'];
 export function matchClass(attendees,rosterText){
