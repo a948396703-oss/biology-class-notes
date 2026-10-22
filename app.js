@@ -1,13 +1,26 @@
-import {books,pickKnowledge} from './catalog.js?v=20261018.2';
-import {mountIncome,readPriceRows} from './income.js?v=20261018.2';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261018.2';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass} from './core.js?v=20261018.2';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.18.2 · 支持不同年份名单';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261022.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261022.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261022.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261022.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.22.1 · 姓名纠错记忆';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 const income=mountIncome();
+const nameHelp=$('names').closest('label').nextElementSibling;
+let recognizedBaseline=[];
+const correctionNote=document.createElement('p');correctionNote.className='hint';correctionNote.setAttribute('role','status');$('names').closest('label').after(correctionNote);
+const undoCorrection=document.createElement('button');undoCorrection.textContent='撤销本次姓名记忆';undoCorrection.className='quiet';undoCorrection.hidden=true;correctionNote.after(undoCorrection);
+let lastCorrection=null;
+undoCorrection.onclick=()=>{if(!lastCorrection)return;try{forgetNameCorrection(lastCorrection[0]);correctionNote.textContent='本次姓名记忆已撤销。';undoCorrection.hidden=true;lastCorrection=null;}catch{correctionNote.textContent='姓名记忆撤销失败，请重试。';}};
+$('confirmed').addEventListener('change',()=>{
+ if(!$('confirmed').checked)return;
+ const after=namesFrom($('names').value),change=confirmedNameChange(recognizedBaseline,after);
+ if(!change)return;
+ try{if(rememberNameCorrection(...change)){lastCorrection=change;income.rename(...change);correctionNote.textContent=`已记住：${change[0]} → ${change[1]}，之后在此浏览器自动纠正。`;undoCorrection.hidden=false;recognizedBaseline=after;}}catch{correctionNote.textContent='本次报告使用你核对的姓名，但浏览器未能保存姓名记忆。';}
+});
+$('screens').addEventListener('change',()=>{if($('screens').files.length){recognizedBaseline=[];correctionNote.textContent='';undoCorrection.hidden=true;}});
 const singleClassHint=document.createElement('p');singleClassHint.className='hint';singleClassHint.hidden=true;$('className').closest('label').before(singleClassHint);
-$('names').closest('label').nextElementSibling.textContent='自动去掉姓名前的年份和末尾数字。请核对姓名、生僻字和人数。';
+nameHelp.textContent='自动去掉姓名前的年份和末尾数字。请核对姓名、生僻字和人数；单个错字修改后勾选核对，会记住本次纠正。';
 $('screens').addEventListener('change',()=>{if($('screens').files.length)income.reset();});
 function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级，请从四个班级中选择。');}
 $('className').onchange=()=>status('class-hint','已手动选择班级。');
@@ -57,7 +70,7 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
  }
  expectedCount=counts.length===1?counts[0]:(counts.every(n=>n!==null)&&new Set(counts).size===1?counts[0]:null);
  $('ocr-text').value=allText.join('\n');$('names').value=[...new Set(recognized.map(cleanName))].join('、');applyClass(classTexts.join('\n'));updateCount();status('ocr-status',recognized.length?`识别完成：当前 ${namesFrom($('names').value).length} 人${expectedCount!==null?`，截图标记到课 ${expectedCount} 人`:''}。请核对姓名与人数。`:'没有可靠识别出姓名，请用实况文本粘贴，或手动填写到课学生。');
- income.recognize(priceRows,classTexts.join('\n'));
+ income.recognize(priceRows,classTexts.join('\n'));recognizedBaseline=namesFrom($('names').value);
  }catch(e){status('ocr-status',`识别未完成：${e.message||'图片无法读取'}。可手动填写到课名单。`);}finally{if(worker)await worker.terminate();$('screens').disabled=false;$('generate').disabled=false;}};
 $('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
 const generateReport=$('generate').onclick;

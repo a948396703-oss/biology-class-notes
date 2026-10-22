@@ -1,4 +1,4 @@
-import {cleanName} from './core.js?v=20261018.2';
+import {cleanName} from './core.js?v=20261022.1';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
@@ -106,6 +106,7 @@ export function mountIncome(){
  };
  last=entries[0]||null;render();sync();
  return {
+  rename(from,to){if(priceMap.has(from)&&!priceMap.has(to))priceMap.set(to,priceMap.get(from));priceMap.delete(from);sync();},
   reset(){priceMap=new Map();conflicts=new Set();$('income-time').value='';$('income-status').textContent='';sync();},
   recognize(rows,text){
    for(const row of rows){if(conflicts.has(row.name))continue;if(priceMap.has(row.name)&&priceMap.get(row.name)!==row.cents){priceMap.delete(row.name);conflicts.add(row.name);$('income-status').textContent='多张截图中金额不一致，请手动核对。';}else priceMap.set(row.name,row.cents);}

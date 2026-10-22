@@ -1,5 +1,20 @@
-const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
-export function cleanName(s){const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();return knownNameCorrections[name]||name;}
+const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','李玖':'李玟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
+let rememberedNames={};
+try{const saved=JSON.parse(localStorage.getItem('bio-name-corrections')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))rememberedNames=saved;}catch{}
+export function cleanName(s){const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();return rememberedNames[name]||knownNameCorrections[name]||name;}
+export function confirmedNameChange(before,after){
+ if(before.length!==after.length||new Set(before).size!==before.length||new Set(after).size!==after.length)return null;
+ const changed=before.map((name,i)=>name===after[i]?null:[name,after[i]]).filter(Boolean);
+ if(changed.length!==1)return null;
+ const [from,to]=changed[0];
+ if(!/^[\u4e00-\u9fff]{2,8}$/.test(from)||!/^[\u4e00-\u9fff]{2,8}$/.test(to)||from.length!==to.length||from[0]!==to[0])return null;
+ return [...from].filter((c,i)=>c!==to[i]).length===1?[from,to]:null;
+}
+export function rememberNameCorrection(from,to){
+ if(!confirmedNameChange([from],[to]))return false;
+ const next={...rememberedNames,[from]:to};localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;return true;
+}
+export function forgetNameCorrection(from){const next={...rememberedNames};delete next[from];localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班'];
 export function matchClass(attendees,rosterText){
  const present=new Set(attendees.map(cleanName));
