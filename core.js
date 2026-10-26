@@ -33,6 +33,18 @@ export function rememberNameCorrection(from,to){
 export function forgetNameCorrection(from){const next={...rememberedNames};delete next[from];localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班','杨棣班'];
 export const classRosters={'杨棣班':['孙偲盛','姚婷岚','杨棣','吕晨硕','刘纯瑞']};
+export function reconcileClassRoster(names,className,roster=classRosters[className]){
+ const normalized=names.map(cleanName),corrections=[];
+ if(!roster)return {names:normalized,corrections,unknown:[]};
+ const used=new Set(normalized.filter(name=>roster.includes(name)));
+ const resolved=normalized.map(name=>{
+  if(roster.includes(name))return name;
+  const candidates=roster.filter(candidate=>!used.has(candidate)&&candidate.length===name.length&&candidate[0]===name[0]&&[...candidate].filter((c,i)=>c!==name[i]).length===1);
+  if(candidates.length!==1)return name;
+  const to=candidates[0];used.add(to);corrections.push({from:name,to});return to;
+ });
+ return {names:resolved,corrections,unknown:resolved.filter(name=>!roster.includes(name))};
+}
 export function validateClassRoster(names,className){
  const roster=names.length>1?classRosters[className]:null;
  return {hasRoster:Boolean(roster),unknown:roster?[...new Set(names.map(cleanName).filter(name=>!roster.includes(name)))]:[]};

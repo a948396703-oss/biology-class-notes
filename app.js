@@ -1,8 +1,8 @@
-import {books,pickKnowledge} from './catalog.js?v=20261026.3';
-import {mountIncome,readPriceRows} from './income.js?v=20261026.3';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.3';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.3';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.3 · 班级姓名校验';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261026.4';
+import {mountIncome,readPriceRows} from './income.js?v=20261026.4';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.4';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.4';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.4 · 名单自动纠正';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
@@ -10,7 +10,10 @@ const income=mountIncome();
 const nameHelp=$('names').closest('label').nextElementSibling;
 const rosterStatus=document.createElement('p');rosterStatus.id='roster-validation';rosterStatus.setAttribute('role','status');rosterStatus.hidden=true;$('names').closest('label').after(rosterStatus);
 function refreshRosterValidation(){
- const result=validateClassRoster(namesFrom($('names').value),$('className').value);
+ const resolved=reconcileClassRoster(namesFrom($('names').value),$('className').value);
+ const rawTokens=$('names').value.split(/[\s,，、;；]+/).filter(Boolean);
+ if(resolved.corrections.length||rawTokens.some(name=>cleanName(name)!==name)){$('names').value=resolved.names.join('、');for(const change of resolved.corrections)income.rename(change.from,change.to);$('confirmed').checked=false;}
+ const result=validateClassRoster(resolved.names,$('className').value);
  rosterStatus.hidden=!result.hasRoster;
  rosterStatus.className=result.unknown.length?'name-roster-warning':'hint';
  rosterStatus.textContent=result.unknown.length?`待确认姓名：${result.unknown.join('、')}。这些名字不在已确认的${$('className').value}名单中，请对照原图修改；暂不生成报告或记账。`:result.hasRoster?`已按${$('className').value}的已确认名单校验姓名。`:'';
@@ -81,7 +84,7 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
  }
  expectedCount=counts.length===1?counts[0]:(counts.every(n=>n!==null)&&new Set(counts).size===1?counts[0]:null);
  $('ocr-text').value=allText.join('\n');$('names').value=[...new Set(recognized.map(cleanName))].join('、');applyClass(classTexts.join('\n'));updateCount();status('ocr-status',recognized.length?`识别完成：当前 ${namesFrom($('names').value).length} 人${expectedCount!==null?`，截图标记到课 ${expectedCount} 人`:''}。请核对姓名与人数。`:'没有可靠识别出姓名，请用实况文本粘贴，或手动填写到课学生。');
- income.recognize(priceRows,classTexts.join('\n'));recognizedBaseline=namesFrom($('names').value);
+ income.recognize(priceRows.map(row=>({...row,name:reconcileClassRoster([row.name],$('className').value).names[0]})),classTexts.join('\n'));recognizedBaseline=namesFrom($('names').value);
  }catch(e){status('ocr-status',`识别未完成：${e.message||'图片无法读取'}。可手动填写到课名单。`);}finally{if(worker)await worker.terminate();$('screens').disabled=false;$('generate').disabled=false;}};
 $('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
 const generateReport=$('generate').onclick;
