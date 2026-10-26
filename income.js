@@ -1,4 +1,5 @@
-import {cleanName} from './core.js?v=20261026.1';
+import {cleanName} from './core.js?v=20261026.2';
+import {mountBenchmarks} from './benchmarks.js?v=20261026.2';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
@@ -48,7 +49,7 @@ export function mountIncome(){
  <div id="income-win" class="income-win" role="status"><span>本节到手薪水 · 47%</span><strong id="income-amount">¥ 0.00</strong><p id="income-gross">到课课费合计 × 47% = 到手薪水</p><p id="income-cheer">认真上完的每一节课，都值得留下一笔记录。</p></div>
  <p id="income-period" class="hint"></p><div class="income-stats"><div>当日到手<span id="income-today">¥ 0.00</span></div><div>当月到手<span id="income-month">¥ 0.00</span></div><div>累计到手<span id="income-total">¥ 0.00</span></div></div>
  <p id="income-milestone" class="hint"></p><progress id="income-progress" max="100000" value="0" aria-label="下一个千元里程碑"></progress>
- <p id="income-rate" class="income-rate">每节 80 分钟 · 等待记录</p><p id="income-compare" class="hint">设置自己的参考时薪，即可比较。</p>
+ <p id="income-rate" class="income-rate">每节 80 分钟 · 等待记录</p><p id="income-compare" class="hint">下方自动对比全国、铁岭及近龄参考；个人目标可选填。</p>
  <label>参考时薪（元 / 小时，选填）<input id="income-reference" inputmode="decimal" type="number" min="0" step="0.01" placeholder="例如 150"></label><p class="hint">这是你设置的目标基准，不代表市场平均水平；时薪仅按授课80分钟计算。</p>
  <details id="income-inputs"><summary>自动识别信息 · 需要时修改</summary><label>开课时间（截图自动填写，可修改）<input id="income-time" type="time"></label><div id="income-prices"></div><p class="hint">仅计算到课学生。缺失金额请补填；金额未齐时可生成报告，但暂不记账。同一日期、时间和班级只记一笔；同日另有一节课请填写不同时间。</p></details>
  <p id="income-status" class="hint" role="status"></p><details><summary>账目明细与导出</summary><button id="income-export" class="secondary">导出 CSV</button><div id="income-list"></div><p class="hint">截图课费合计后按47%计算到手薪水，时薪也按到手金额计算。旧账目自动按47%重新折算。账目保存在当前浏览器，建议定期导出备份。</p></details>`;
@@ -57,6 +58,9 @@ export function mountIncome(){
  const metadata=$('income-inputs'),timeLabel=$('income-time').closest('label');
  for(const id of ['date','teacher'])metadata.insertBefore($(id).closest('label'),timeLabel);
  $('className').closest('.grid').style.gridTemplateColumns='1fr';
+ const personalGoal=document.createElement('details'),personalSummary=document.createElement('summary');personalSummary.textContent='个人目标时薪（选填）';personalGoal.append(personalSummary);
+ const goalLabel=$('income-reference').closest('label'),goalHint=goalLabel.nextElementSibling;goalLabel.before(personalGoal);personalGoal.append(goalLabel,goalHint);
+ const updateBenchmarks=mountBenchmarks(panel);
  let entries=[],priceMap=new Map(),conflicts=new Set(),last=null,amountFrame=0;
  try{entries=JSON.parse(localStorage.getItem('bio-income')||'[]');if(!Array.isArray(entries))entries=[];entries=entries.map(normalizeIncome);$('income-reference').value=localStorage.getItem('bio-income-reference')||'';}catch{}
  const write=next=>{localStorage.setItem('bio-income',JSON.stringify(next));entries=next;};
@@ -71,6 +75,7 @@ export function mountIncome(){
   }
  }
  function render(){
+  updateBenchmarks(last?hourlyCents(last.cents):null);
   const d=new Date(),today=$('date').value||last?.date||`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   $('income-period').textContent=`按上课日期统计：${today} · 金额均为47%到手薪水`;
   const sum=arr=>arr.reduce((s,e)=>s+e.cents,0),total=sum(entries);
@@ -85,14 +90,14 @@ export function mountIncome(){
    $('income-gross').textContent=`${last.date} ${last.time||''} · 课费 ¥${money(last.grossCents)} × 47%`;
    const rate=hourlyCents(last.cents);$('income-rate').textContent=`80 分钟 · 到手时薪 ¥${money(rate)} / 小时`;
    let ref=0;try{if($('income-reference').value)ref=toCents($('income-reference').value);}catch{}
-   $('income-compare').textContent=ref?(rate>ref?`比你设置的参考时薪高 ${((rate/ref-1)*100).toFixed(1)}%，这份教学能力正在创造价值！`:rate===ref?'本节授课时薪达到你设置的参考水平。':`本节为参考时薪的 ${(rate/ref*100).toFixed(1)}%，已如实记录。`):'设置自己的参考时薪，即可比较。';
+   $('income-compare').textContent=ref?(rate>ref?`比你设置的参考时薪高 ${((rate/ref-1)*100).toFixed(1)}%，这份教学能力正在创造价值！`:rate===ref?'本节授课时薪达到你设置的参考水平。':`本节为参考时薪的 ${(rate/ref*100).toFixed(1)}%，已如实记录。`):'下方自动对比全国、铁岭及近龄参考；个人目标可选填。';
   }
   if(!last)$('income-gross').textContent='到课课费合计 × 47% = 到手薪水';
   $('income-list').replaceChildren();
   entries.forEach(e=>{
    const row=document.createElement('div');row.className='income-entry';const text=document.createElement('span');text.textContent=`${e.date} ${e.time||''} · ${e.label} · 课费 ¥${money(e.grossCents)} / 到手 ¥${money(e.cents)}`;
    const edit=document.createElement('button');edit.className='secondary';edit.textContent='改金额';edit.onclick=()=>{const value=prompt('修改截图课费合计（元，未乘47%）',String(e.grossCents/100));if(value===null)return;try{const updated=normalizeIncome({...e,grossCents:toCents(value)});write(entries.map(x=>x.id===e.id?updated:x));if(last?.id===e.id)last=updated;render();}catch(err){$('income-status').textContent=err.message;}};
-   const del=document.createElement('button');del.className='quiet';del.textContent='删除';del.onclick=()=>{if(confirm('删除这笔课时收入？')){try{write(entries.filter(x=>x.id!==e.id));if(last?.id===e.id){last=entries[0]||null;$('income-amount').textContent=last?'¥ '+money(last.cents):'¥ 0.00';$('income-cheer').textContent='账目已更新。';$('income-rate').textContent='每节 80 分钟 · 等待记录';$('income-compare').textContent='设置自己的参考时薪，即可比较。';}render();}catch{$('income-status').textContent='删除失败，浏览器存储不可用。';}}};
+   const del=document.createElement('button');del.className='quiet';del.textContent='删除';del.onclick=()=>{if(confirm('删除这笔课时收入？')){try{write(entries.filter(x=>x.id!==e.id));if(last?.id===e.id){last=entries[0]||null;$('income-amount').textContent=last?'¥ '+money(last.cents):'¥ 0.00';$('income-cheer').textContent='账目已更新。';$('income-rate').textContent='每节 80 分钟 · 等待记录';$('income-compare').textContent='下方自动对比全国、铁岭及近龄参考；个人目标可选填。';}render();}catch{$('income-status').textContent='删除失败，浏览器存储不可用。';}}};
    row.append(text,edit,del);$('income-list').append(row);
   });
  }

@@ -1,8 +1,8 @@
-import {books,pickKnowledge} from './catalog.js?v=20261026.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261026.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.1 · 杨棣班名单';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261026.2';
+import {mountIncome,readPriceRows} from './income.js?v=20261026.2';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.2';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.2';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.2 · 铁岭时薪对比';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
