@@ -1,5 +1,5 @@
-const CACHE='bio-notes-v13-name-memory';
-const ASSETS=['./','./index.html','./style.css?v=20261022.1','./income.css?v=20261022.1','./app.js?v=20261022.1','./core.js?v=20261022.1','./catalog.js?v=20261022.1','./income.js?v=20261022.1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='bio-notes-v14-yangdi';
+const ASSETS=['./','./index.html','./style.css?v=20261026.1','./income.css?v=20261026.1','./app.js?v=20261026.1','./core.js?v=20261026.1','./catalog.js?v=20261026.1','./income.js?v=20261026.1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bio-notes-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

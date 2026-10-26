@@ -1,10 +1,11 @@
-import {books,pickKnowledge} from './catalog.js?v=20261022.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261022.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261022.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261022.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.22.1 · 姓名纠错记忆';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261026.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261026.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.1 · 杨棣班名单';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
+$('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
 const income=mountIncome();
 const nameHelp=$('names').closest('label').nextElementSibling;
 let recognizedBaseline=[];
@@ -22,7 +23,7 @@ $('screens').addEventListener('change',()=>{if($('screens').files.length){recogn
 const singleClassHint=document.createElement('p');singleClassHint.className='hint';singleClassHint.hidden=true;$('className').closest('label').before(singleClassHint);
 nameHelp.textContent='自动去掉姓名前的年份和末尾数字。请核对姓名、生僻字和人数；单个错字修改后勾选核对，会记住本次纠正。';
 $('screens').addEventListener('change',()=>{if($('screens').files.length)income.reset();});
-function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级，请从四个班级中选择。');}
+function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级，请从班级列表中选择。');}
 $('className').onchange=()=>status('class-hint','已手动选择班级。');
 function status(id,s){$(id).textContent=s;}
 function persist(){try{localStorage.setItem('bio-settings',JSON.stringify(Object.fromEntries(fields.map(k=>[k,$(k).value]))));localStorage.setItem('bio-chapters',JSON.stringify(chosen));}catch{status('form-status','浏览器未允许本地保存，仍可生成和复制。');}}

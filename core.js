@@ -1,5 +1,7 @@
 const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','李玖':'李玟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
 let rememberedNames={};
+knownNameCorrections['孙个盛']='孙偲盛';
+Object.assign(knownNameCorrections,{'孙借盛':'孙偲盛','吕晚硕':'吕晨硕','刘纯瑗':'刘纯瑞'});
 try{const saved=JSON.parse(localStorage.getItem('bio-name-corrections')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))rememberedNames=saved;}catch{}
 export function cleanName(s){const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();return rememberedNames[name]||knownNameCorrections[name]||name;}
 export function confirmedNameChange(before,after){
@@ -15,7 +17,8 @@ export function rememberNameCorrection(from,to){
  const next={...rememberedNames,[from]:to};localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;return true;
 }
 export function forgetNameCorrection(from){const next={...rememberedNames};delete next[from];localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;}
-export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班'];
+export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班','杨棣班'];
+export const classRosters={'杨棣班':['孙偲盛','姚婷岚','杨棣','吕晨硕','刘纯瑞']};
 export function matchClass(attendees,rosterText){
  const present=new Set(attendees.map(cleanName));
  const arrived=classNames.filter(c=>present.has(c.slice(0,-1)));
@@ -29,7 +32,10 @@ export function matchClass(attendees,rosterText){
  // OCR可能漏掉竖排“请假”二字，但页头班级标题仍保留班主任名。
  const dateStart=normalized.search(/20\d{2}[-/.]\d{1,2}[-/.]\d{1,2}/);
  const header=dateStart<0?'':normalized.slice(0,dateStart);
- return {candidates:classNames.filter(c=>header.includes(c.slice(0,-1))),source:'截图班级标题'};
+ const titled=classNames.filter(c=>header.includes(c.slice(0,-1)));
+ if(titled.length)return {candidates:titled,source:'截图班级标题'};
+ const rosterMatches=Object.entries(classRosters).filter(([,roster])=>present.size>=2&&[...present].every(name=>roster.includes(name))).map(([name])=>name);
+ return {candidates:rosterMatches,source:'已确认班级名单'};
 }
 export function namesFrom(s){return [...new Set(s.split(/[\s,，、;；]+/).map(cleanName).filter(Boolean))];}
 export function positionedNames(blocks,top,bottom){
