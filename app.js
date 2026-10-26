@@ -1,17 +1,27 @@
-import {books,pickKnowledge} from './catalog.js?v=20261026.2';
-import {mountIncome,readPriceRows} from './income.js?v=20261026.2';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.2';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.2';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.2 · 铁岭时薪对比';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261026.3';
+import {mountIncome,readPriceRows} from './income.js?v=20261026.3';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.3';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.3';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.3 · 班级姓名校验';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
 const income=mountIncome();
 const nameHelp=$('names').closest('label').nextElementSibling;
+const rosterStatus=document.createElement('p');rosterStatus.id='roster-validation';rosterStatus.setAttribute('role','status');rosterStatus.hidden=true;$('names').closest('label').after(rosterStatus);
+function refreshRosterValidation(){
+ const result=validateClassRoster(namesFrom($('names').value),$('className').value);
+ rosterStatus.hidden=!result.hasRoster;
+ rosterStatus.className=result.unknown.length?'name-roster-warning':'hint';
+ rosterStatus.textContent=result.unknown.length?`待确认姓名：${result.unknown.join('、')}。这些名字不在已确认的${$('className').value}名单中，请对照原图修改；暂不生成报告或记账。`:result.hasRoster?`已按${$('className').value}的已确认名单校验姓名。`:'';
+ $('names').classList.toggle('name-roster-invalid',result.unknown.length>0);
+ return result.unknown.length===0;
+}
+$('className').addEventListener('change',refreshRosterValidation);
 let recognizedBaseline=[];
 const correctionNote=document.createElement('p');correctionNote.className='hint';correctionNote.setAttribute('role','status');$('names').closest('label').after(correctionNote);
 const undoCorrection=document.createElement('button');undoCorrection.textContent='撤销本次姓名记忆';undoCorrection.className='quiet';undoCorrection.hidden=true;correctionNote.after(undoCorrection);
-let lastCorrection=null;
+ let lastCorrection=null;
 undoCorrection.onclick=()=>{if(!lastCorrection)return;try{forgetNameCorrection(lastCorrection[0]);correctionNote.textContent='本次姓名记忆已撤销。';undoCorrection.hidden=true;lastCorrection=null;}catch{correctionNote.textContent='姓名记忆撤销失败，请重试。';}};
 $('confirmed').addEventListener('change',()=>{
  if(!$('confirmed').checked)return;
@@ -33,7 +43,7 @@ const now=new Date();$('date').value=`${now.getFullYear()}-${String(now.getMonth
 function chapterOptions(){const b=books[Number($('book').value)];$('chapter').replaceChildren(new Option('请选择章节',''));b[1].forEach((c,i)=>$('chapter').add(new Option(`第${i+1}章 ${c[0]}`,i)));chosen=chosen.filter(i=>b[1][i]);renderChapters();}
 function renderChapters(){$('chapters').replaceChildren();chosen.forEach(i=>{const b=document.createElement('button');b.textContent=`第${i+1}章 ${books[+$('book').value][1][i][0]} ×`;b.onclick=()=>{chosen=chosen.filter(x=>x!==i);renderChapters();persist()};$('chapters').append(b)});}
 chapterOptions();$('book').onchange=()=>{chosen=[];chapterOptions();persist()};$('chapter').onchange=()=>{if($('chapter').value==='')return;const n=+$('chapter').value;if(!chosen.includes(n))chosen.push(n);chosen.sort((a,b)=>a-b);renderChapters();persist();$('chapter').value=''};
-function updateCount(){const names=namesFrom($('names').value),n=names.length;status('count',`${n} 人`);$('confirmed').checked=false;const warning=countWarning(expectedCount,n);status('attendance-warning',warning);$('attendance-warning').hidden=!warning;$('className').closest('label').hidden=n===1;singleClassHint.hidden=n!==1;singleClassHint.textContent=n===1?`单人课 · ${names[0]}，无需选择班级。`:'';}
+function updateCount(){const names=namesFrom($('names').value),n=names.length;status('count',`${n} 人`);$('confirmed').checked=false;const warning=countWarning(expectedCount,n);status('attendance-warning',warning);$('attendance-warning').hidden=!warning;$('className').closest('label').hidden=n===1;singleClassHint.hidden=n!==1;singleClassHint.textContent=n===1?`单人课 · ${names[0]}，无需选择班级。`:'';refreshRosterValidation();}
 $('names').oninput=updateCount;$('names').onblur=()=>{$('names').value=namesFrom($('names').value).join('、')};fields.filter(x=>x!=='book').forEach(k=>$(k).onchange=persist);
 $('parse').onclick=()=>{const r=parseAttendance($('ocr-text').value);expectedCount=r.count;$('names').value=r.names.join('、');applyClass($('ocr-text').value);if(r.date)$('date').value=r.date;updateCount();status('ocr-status',r.names.length?`提取到 ${r.names.length} 位学生${r.count!==null?`，截图标记到课 ${r.count} 人`:''}。请逐一核对。`:'未能可靠提取到课名单，请在“到课学生”中手动填写。');};
 async function loadOCR(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='vendor/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('识别资源加载失败，请检查网络或粘贴截图文字。'));document.head.append(s)});}
@@ -75,7 +85,7 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
  }catch(e){status('ocr-status',`识别未完成：${e.message||'图片无法读取'}。可手动填写到课名单。`);}finally{if(worker)await worker.terminate();$('screens').disabled=false;$('generate').disabled=false;}};
 $('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
 const generateReport=$('generate').onclick;
-$('generate').onclick=()=>{status('form-status','');generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
+$('generate').onclick=()=>{status('form-status','');if(!refreshRosterValidation()){status('form-status','班级名单中有待确认姓名，请先对照原图修正。');return;}generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
 $('copy').onclick=async()=>{if(!$('report').value)return status('report-status','请先生成报告。');try{await navigator.clipboard.writeText($('report').value);status('report-status','已复制，可以粘贴发送。');}catch{$('report').focus();$('report').select();status('report-status','请长按选中的文字，选择复制。')}};
 function renderHistory(){$('history').replaceChildren();if(!history.length){$('history').textContent='保存后的报告会出现在这里。';return;}history.forEach((h,i)=>{const row=document.createElement('div'),b=document.createElement('button'),del=document.createElement('button');b.textContent=h.title;b.onclick=()=>{$('report').value=h.text;status('report-status','已打开历史报告。')};del.textContent='删除';del.setAttribute('aria-label',`删除 ${h.title}`);del.onclick=()=>{if(confirm('删除这份历史报告？')){history.splice(i,1);try{localStorage.setItem('bio-history',JSON.stringify(history));}catch{}renderHistory()}};row.append(b,del);$('history').append(row)})}
 $('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${$('className').value||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});

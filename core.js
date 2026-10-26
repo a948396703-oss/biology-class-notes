@@ -3,7 +3,21 @@ let rememberedNames={};
 knownNameCorrections['孙个盛']='孙偲盛';
 Object.assign(knownNameCorrections,{'孙借盛':'孙偲盛','吕晚硕':'吕晨硕','刘纯瑗':'刘纯瑞'});
 try{const saved=JSON.parse(localStorage.getItem('bio-name-corrections')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))rememberedNames=saved;}catch{}
-export function cleanName(s){const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();return rememberedNames[name]||knownNameCorrections[name]||name;}
+export function isConfirmedName(name){return Object.values(knownNameCorrections).includes(name)||Object.values(classRosters).some(roster=>roster.includes(name));}
+export function cleanName(s){
+ const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();
+ // 已核准的名单和纠错优先；旧本机记忆不能反向改坏正确姓名。
+ let current=name;const seen=new Set();
+ for(let i=0;i<32;i++){
+  if(knownNameCorrections[current])return knownNameCorrections[current];
+  if(isConfirmedName(current))return current;
+  if(seen.has(current))return name;
+  seen.add(current);const remembered=rememberedNames[current];
+  if(typeof remembered!=='string'||!/^[\u4e00-\u9fff]{2,8}$/.test(remembered))return current;
+  current=remembered;
+ }
+ return name;
+}
 export function confirmedNameChange(before,after){
  if(before.length!==after.length||new Set(before).size!==before.length||new Set(after).size!==after.length)return null;
  const changed=before.map((name,i)=>name===after[i]?null:[name,after[i]]).filter(Boolean);
@@ -13,12 +27,16 @@ export function confirmedNameChange(before,after){
  return [...from].filter((c,i)=>c!==to[i]).length===1?[from,to]:null;
 }
 export function rememberNameCorrection(from,to){
- if(!confirmedNameChange([from],[to]))return false;
+ if(!confirmedNameChange([from],[to])||isConfirmedName(from)||knownNameCorrections[from])return false;
  const next={...rememberedNames,[from]:to};localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;return true;
 }
 export function forgetNameCorrection(from){const next={...rememberedNames};delete next[from];localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班','杨棣班'];
 export const classRosters={'杨棣班':['孙偲盛','姚婷岚','杨棣','吕晨硕','刘纯瑞']};
+export function validateClassRoster(names,className){
+ const roster=names.length>1?classRosters[className]:null;
+ return {hasRoster:Boolean(roster),unknown:roster?[...new Set(names.map(cleanName).filter(name=>!roster.includes(name)))]:[]};
+}
 export function matchClass(attendees,rosterText){
  const present=new Set(attendees.map(cleanName));
  const arrived=classNames.filter(c=>present.has(c.slice(0,-1)));
@@ -65,6 +83,7 @@ export function randomPraise(grouped,random=Math.random){
 }
 export function makeReport({className,date,teacher,names,chapters,homework,mode,knowledge,note}){
  if((names.length>1&&!className.trim())||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
+ if(validateClassRoster(names,className).unknown.length)throw Error('班级名单中有待确认姓名，请先对照原图修正。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
  const praise=randomPraise(names.length>5);
