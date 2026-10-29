@@ -1,8 +1,8 @@
-import {books,pickKnowledge} from './catalog.js?v=20261026.4';
-import {mountIncome,readPriceRows} from './income.js?v=20261026.4';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261026.4';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261026.4';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.26.4 · 名单自动纠正';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261029.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261029.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261029.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261029.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.29.1 · 完整到课截图识别';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
@@ -64,7 +64,8 @@ async function imageCanvas(file){
  }finally{URL.revokeObjectURL(url)}
 }
 function attendanceCrop(c){const ctx=c.getContext('2d'),p=ctx.getImageData(0,0,c.width,c.height).data;let start=-1,end=-1,run=0,tagBottom=-1;for(let y=Math.floor(c.height*.12);y<c.height;y++){let blue=0,purple=0;for(let x=Math.floor(c.width*.04);x<c.width*.13;x++){const i=(y*c.width+x)*4,r=p[i],g=p[i+1],b=p[i+2];if(b>120&&b>r*1.4&&g>r*1.2)blue++;if(b>150&&r>90&&r>g*1.2)purple++;}const width=c.width*.09;const right=(y*c.width+Math.floor(c.width*.9))*4;const white=p[right]>225&&p[right+1]>225&&p[right+2]>225;if(blue>width*.6&&white){run++;if(run>15&&start<0)start=y-run;if(start>=0)tagBottom=y;}else run=0;if(start>=0&&y>start+50&&purple>width*.6){end=y;break;}}
- if(start<0||end<0)return null;const out=document.createElement('canvas');out.width=c.width;out.height=end-start;out.getContext('2d').drawImage(c,0,start,c.width,end-start,0,0,c.width,end-start);return {canvas:out,top:start,bottom:end,tagBottom};}
+ // 截图可能只包含到课卡片，没有下一张紫色请假卡片；此时到课区域延伸至图底。
+ if(start<0)return null;const openEnded=end<0;if(openEnded)end=c.height;const out=document.createElement('canvas');out.width=c.width;out.height=end-start;out.getContext('2d').drawImage(c,0,start,c.width,end-start,0,0,c.width,end-start);return {canvas:out,top:start,bottom:end,tagBottom,openEnded};}
 $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.length)return;$('screens').disabled=true;$('generate').disabled=true;$('previews').replaceChildren();$('names').value='';$('className').value='';status('class-hint','识别完成后自动匹配班级。');expectedCount=null;updateCount();let worker;let recognized=[];try{status('ocr-status','正在准备本机文字识别，首次加载可能需要一些时间…');await loadOCR();worker=await Tesseract.createWorker('chi_sim',1,{workerPath:'vendor/worker.min.js',corePath:'vendor/core',langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0',logger:m=>{if(m.status==='recognizing text')status('ocr-status',`正在识别文字 ${Math.round(m.progress*100)}%…`);}});await worker.setParameters({tessedit_pageseg_mode:'11'});
  let allText=[],counts=[],classTexts=[],priceRows=[];for(let i=0;i<files.length;i++){
  const c=await imageCanvas(files[i]),img=new Image();img.src=c.toDataURL('image/jpeg',.6);img.alt=`点名截图 ${i+1}`;$('previews').append(img);
@@ -76,9 +77,17 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
    result.names=positionedNames(full.data.blocks,crop.top,crop.bottom);
    if(!result.names.length){const r=await worker.recognize(crop.canvas);result=parseAttendance('到课\n'+r.data.text);}
    const badge=document.createElement('canvas'),height=crop.tagBottom-crop.top;badge.width=Math.round(c.width*.09)*3;badge.height=Math.round(height*.3)*3;
-   badge.getContext('2d').drawImage(c,c.width*.04,crop.top+height*.58,c.width*.09,height*.3,0,0,badge.width,badge.height);
+   // 只取蓝色标签内部，避免右侧白色卡片边缘被数字识别成额外的“1”。
+   badge.getContext('2d').drawImage(c,c.width*(crop.openEnded?.048:.04),crop.top+height*.58,c.width*(crop.openEnded?.07:.09),height*.3,0,0,badge.width,badge.height);
    const ctx=badge.getContext('2d'),pixels=ctx.getImageData(0,0,badge.width,badge.height);for(let j=0;j<pixels.data.length;j+=4){const white=pixels.data[j]>170&&pixels.data[j+1]>190;pixels.data[j]=pixels.data[j+1]=pixels.data[j+2]=white?0:255;}ctx.putImageData(pixels,0,0);
-   await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789'});const number=await worker.recognize(badge);const digits=number.data.text.trim();if(/^\d{1,3}$/.test(digits))count=Number(digits);
+   await worker.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789'});const number=await worker.recognize(badge);let digits=number.data.text.trim();
+   if(!/^\d{1,3}$/.test(digits)){
+    // 小尺寸或带标注截图中的数字可能更靠左；窄框没有结果时保留旧宽框识别。
+    ctx.drawImage(c,c.width*.04,crop.top+height*.58,c.width*.09,height*.3,0,0,badge.width,badge.height);
+    const fallback=ctx.getImageData(0,0,badge.width,badge.height);for(let j=0;j<fallback.data.length;j+=4){const white=fallback.data[j]>170&&fallback.data[j+1]>190;fallback.data[j]=fallback.data[j+1]=fallback.data[j+2]=white?0:255;}ctx.putImageData(fallback,0,0);
+    digits=(await worker.recognize(badge)).data.text.trim();
+   }
+   if(/^\d{1,3}$/.test(digits))count=Number(digits);
  }else if(meta.found&&/假|缺\s*勤/.test(full.data.text)){result=meta;}
  counts.push(count);recognized.push(...result.names);allText.push('到课'+(count??'')+'\n'+result.names.map(n=>'2028'+n).join('\n')+'\n请假\n【原始识别文字】\n'+full.data.text);
  }
