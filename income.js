@@ -1,5 +1,5 @@
-import {cleanName} from './core.js?v=20261029.1';
-import {mountBenchmarks} from './benchmarks.js?v=20261029.1';
+import {cleanName} from './core.js?v=20261030.1';
+import {mountBenchmarks} from './benchmarks.js?v=20261030.1';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
@@ -59,7 +59,7 @@ export function mountIncome(){
  for(const id of ['date','teacher'])metadata.insertBefore($(id).closest('label'),timeLabel);
  $('className').closest('.grid').style.gridTemplateColumns='1fr';
  const personalGoal=document.createElement('details'),personalSummary=document.createElement('summary');personalSummary.textContent='个人目标时薪（选填）';personalGoal.append(personalSummary);
- const goalLabel=$('income-reference').closest('label'),goalHint=goalLabel.nextElementSibling;goalLabel.before(personalGoal);personalGoal.append(goalLabel,goalHint);
+ const goalLabel=$('income-reference').closest('label'),goalHint=goalLabel.nextElementSibling;goalLabel.before(personalGoal);personalGoal.append(goalLabel,goalHint,$('income-compare'));$('income-rate').hidden=true;
  const updateBenchmarks=mountBenchmarks(panel);
  let entries=[],priceMap=new Map(),conflicts=new Set(),last=null,amountFrame=0;
  try{entries=JSON.parse(localStorage.getItem('bio-income')||'[]');if(!Array.isArray(entries))entries=[];entries=entries.map(normalizeIncome);$('income-reference').value=localStorage.getItem('bio-income-reference')||'';}catch{}

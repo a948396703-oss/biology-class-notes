@@ -21,29 +21,37 @@ export function quantileReference(hourlyCents){
 }
 export function mountBenchmarks(parent){
  const section=document.createElement('section');section.className='wage-benchmarks';
- section.innerHTML=`<div class="section-title"><h2>看看你的这一小时</h2><span class="pill">23岁 · 辽宁铁岭</span></div>
- <p class="hint">23岁 · 辽宁铁岭 · 数据核查于2026-10-26。参考值由税前年工资按2080工时估算；你的47%分成后授课时薪未计备课等时间，不是同口径净收入或全年综合时薪比较。</p>
- <div id="benchmark-nation" class="wage-reference"></div><div id="benchmark-local" class="wage-reference"></div>
- <div class="wage-reference"><strong>23岁同龄人</strong><p>暂未取得可靠的全国23岁平均时薪及收入分布，暂不计算同龄差额或排名。</p><details><summary>查看近龄补充参考（非23岁均值）</summary><div id="benchmark-graduate"></div></details></div>
- <div class="wage-reference"><strong>分位线参考 · 非全国个人排名</strong><p id="benchmark-quantile">记录课时收入后显示。</p><p class="hint">全国、铁岭、23岁人群的前X%排名：暂无匹配分布数据。下列教学岗位分位线仅作量级参照。</p><a href="https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/fwyd/202607/t20260708_579822.html" target="_blank" rel="noopener noreferrer">人社部2025年企业薪酬调查 · 企业教学人员</a></div>
- <p id="benchmark-feedback" role="status"></p><details><summary>数据来源与比较口径</summary><p class="hint">参考时薪=年工资÷2080（假设每周40小时、每年52周，并非统计的实际工时）。全国数据覆盖城镇单位就业人员，不包含所有中国人；私营与非私营不混合成一个均值。你的47%分成后授课时薪，与官方税前年工资折算值口径不同；备课、批改、通勤和空档未计入，不能代表全年实际综合时薪。分位线来自企业教学人员税前年工资，使用同一假设折算，并不据此宣称你的全年收入属于前X%。铁岭2024年数据为公告转载，尚未核验原文。本功能未假定所得税或社保扣除额。</p></details>`;
+ section.innerHTML=`<div class="wage-chart-heading"><h2>这一小时，很有价值</h2><span>铁岭 · 23岁</span></div>
+ <div class="wage-hero"><span>你的到手授课时薪</span><div><strong id="benchmark-own">—</strong><span>元 / 小时</span></div></div>
+ <div class="wage-chart" role="img" aria-label="你的授课时薪与工资折算参考对比"><div id="benchmark-self"></div><div id="benchmark-nation"></div><div id="benchmark-local"></div></div>
+ <p class="wage-chart-caption">工资折算参考 · 非全年收入排名</p><p id="benchmark-feedback" role="status"></p>
+ <details class="wage-sources"><summary>数据来源</summary><p class="hint">参考时薪=税前年工资÷2080。你的47%分成后授课时薪未计备课、批改、通勤及空档，比较仅作量级参照，不代表全年综合收入或全国排名。全国数据覆盖城镇单位就业人员；铁岭数据为公告转载，原文尚未独立核验。核查日：2026-10-26。</p>
+ <div id="benchmark-source-links"></div><p class="hint">23岁同龄人：暂无可靠平均时薪或排名。以下仅为毕业生样本补充参考。</p><div id="benchmark-graduate"></div>
+ <p id="benchmark-quantile"></p><a href="https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/fwyd/202607/t20260708_579822.html" target="_blank" rel="noopener noreferrer">教学岗位分位线来源（非全国排名）</a></details>`;
  parent.querySelector('#income-status').before(section);
  const get=id=>section.querySelector('#'+id);
- const appendRef=(box,ref,rate)=>{
-  const block=document.createElement('div');const label=document.createElement('strong');label.textContent=`${ref.label} · ${ref.year}年`;
-  const p=document.createElement('p'),result=relativeWage(rate,ref.annualYuan);
-  p.textContent=rate===null?'生成报告并记账后显示比较。':`参考 ¥${result.reference.toFixed(2)}/小时 · ${result.direction==='相当'?'与该口径均值相当':`${result.direction}该口径均值 ${Math.abs(result.percent).toFixed(1)}%`}`;
-  p.className=result?.percent>0?'wage-above':'wage-neutral';
-  const link=document.createElement('a');link.href=ref.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=ref.note?'来源与样本说明':'国家统计局数据';
-  block.append(label,p,link);if(ref.note){const note=document.createElement('p');note.className='hint';note.textContent=ref.note;block.append(note);}box.append(block);
+ const refs=[[wageReferences.nationalPrivate,'全国 · 私营'],[wageReferences.nationalNonPrivate,'全国 · 非私营'],[wageReferences.tieling,'铁岭 · 职工']];
+ for(const [ref] of [...refs,[wageReferences.graduate]]){
+  const link=document.createElement('a');link.href=ref.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=`${ref.label} · ${ref.year}年`;get('benchmark-source-links').append(link);
+ }
+ const bar=(box,label,value,max,own=false,badge='')=>{
+  const row=document.createElement('div');row.className='wage-chart-row'+(own?' is-you':'');
+  const heading=document.createElement('div');heading.className='wage-row-label';
+  const name=document.createElement('span');name.textContent=label;
+  const amount=document.createElement('strong');amount.textContent=value===null?'—':`¥${value.toFixed(2)}`;heading.append(name,amount);
+  const track=document.createElement('div');track.className='wage-track';const fill=document.createElement('div');fill.className='wage-fill';fill.style.width=value===null?'0%':`${Math.max(0,Math.min(100,value/max*100))}%`;track.append(fill);row.append(heading,track);
+  if(badge){const tag=document.createElement('span');tag.className='wage-difference';tag.textContent=badge;row.append(tag);}box.append(row);
  };
  const update=rate=>{
-  for(const id of ['benchmark-nation','benchmark-local','benchmark-graduate'])get(id).replaceChildren();
-  appendRef(get('benchmark-nation'),wageReferences.nationalPrivate,rate);appendRef(get('benchmark-nation'),wageReferences.nationalNonPrivate,rate);
-  appendRef(get('benchmark-local'),wageReferences.tieling,rate);appendRef(get('benchmark-graduate'),wageReferences.graduate,rate);
+  for(const id of ['benchmark-self','benchmark-nation','benchmark-local'])get(id).replaceChildren();
+  get('benchmark-own').textContent=rate===null?'—':(rate/100).toFixed(2);
+  const max=Math.max(rate===null?0:rate/100,...refs.map(([r])=>r.annualYuan/ASSUMED_ANNUAL_HOURS))*1.08;
+  bar(get('benchmark-self'),'你 · 本节课',rate===null?null:rate/100,max,true);
+  for(const [ref,label] of refs){const r=relativeWage(rate,ref.annualYuan);bar(get(ref===wageReferences.tieling?'benchmark-local':'benchmark-nation'),label,ref.annualYuan/ASSUMED_ANNUAL_HOURS,max,false,rate===null?'':r.direction==='相当'?'你与参考相当':`你${r.direction} ${Math.abs(r.percent).toFixed(1)}%`);}
+  const graduate=relativeWage(rate,wageReferences.graduate.annualYuan);get('benchmark-graduate').textContent=rate===null?'记录后显示近龄样本参考。':`毕业生样本：¥${graduate.reference.toFixed(2)}/小时 · ${graduate.direction} ${Math.abs(graduate.percent).toFixed(1)}%（非23岁均值）`;
   get('benchmark-quantile').textContent=rate===null?'记录课时收入后显示。':quantileReference(rate);
   const comparisons=rate===null?[]:[relativeWage(rate,wageReferences.nationalPrivate.annualYuan),relativeWage(rate,wageReferences.nationalNonPrivate.annualYuan),relativeWage(rate,wageReferences.tieling.annualYuan)];
-  get('benchmark-feedback').textContent=rate===null?'':comparisons.every(r=>r.percent>0)?'这节课的分成后授课时薪，高于以上三条工资折算参考线。专注教学的这一小时，展现了你的价值。':comparisons.some(r=>r.percent>0)?'这节课已高于部分参考线，每一节课的积累都在向前。':'本节时薪已如实记录，继续按自己的节奏积累。';
+  get('benchmark-feedback').textContent=rate===null?'记下一节课，点亮你的时薪图。':comparisons.every(r=>r.percent>0)?'✦ 高于三条参考线，你的专业正在创造价值。':comparisons.some(r=>r.percent>0)?'✦ 每一节认真上的课，都是新的积累。':'本节已记录，按自己的节奏积累。';
  };
  update(null);return update;
 }

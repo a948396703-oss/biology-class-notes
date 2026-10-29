@@ -1,8 +1,8 @@
-import {books,pickKnowledge} from './catalog.js?v=20261029.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261029.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261029.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261029.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.29.1 · 完整到课截图识别';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261030.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261030.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261030.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261030.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.30.1 · 时薪可视化';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
