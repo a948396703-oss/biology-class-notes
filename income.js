@@ -1,5 +1,5 @@
-import {cleanName} from './core.js?v=20261030.2';
-import {mountBenchmarks} from './benchmarks.js?v=20261030.2';
+import {cleanName} from './core.js?v=20261031.1';
+import {mountBenchmarks} from './benchmarks.js?v=20261031.1';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
