@@ -1,22 +1,33 @@
-import {books,pickKnowledge} from './catalog.js?v=20261031.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261031.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261031.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261031.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 10.31.1 · 识别加载修复';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261101.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261101.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261101.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,addClassStudents,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261101.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 11.01.1 · 新同学确认加入';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
 const income=mountIncome();
 const nameHelp=$('names').closest('label').nextElementSibling;
 const rosterStatus=document.createElement('p');rosterStatus.id='roster-validation';rosterStatus.setAttribute('role','status');rosterStatus.hidden=true;$('names').closest('label').after(rosterStatus);
+const addStudents=document.createElement('button');addStudents.id='add-class-students';addStudents.type='button';addStudents.className='secondary';addStudents.hidden=true;rosterStatus.after(addStudents);
+const rosterSaveStatus=document.createElement('p');rosterSaveStatus.className='hint';rosterSaveStatus.id='roster-save-status';addStudents.after(rosterSaveStatus);
+addStudents.onclick=()=>{
+ const className=$('className').value;
+ const result=validateClassRoster(namesFrom($('names').value),className);
+ if(!result.unknown.length)return;
+ try{addClassStudents(className,result.unknown);$('confirmed').checked=false;refreshRosterValidation();rosterSaveStatus.textContent=`已将 ${result.unknown.join('、')} 加入${className}，此浏览器以后会记住。请勾选名单核对后生成报告。`;}
+ catch{rosterSaveStatus.textContent='本机保存失败，名单尚未添加，请检查浏览器存储后重试。';}
+};
 function refreshRosterValidation(){
+ rosterSaveStatus.textContent='';
  const resolved=reconcileClassRoster(namesFrom($('names').value),$('className').value);
  const rawTokens=$('names').value.split(/[\s,，、;；]+/).filter(Boolean);
  if(resolved.corrections.length||rawTokens.some(name=>cleanName(name)!==name)){$('names').value=resolved.names.join('、');for(const change of resolved.corrections)income.rename(change.from,change.to);$('confirmed').checked=false;}
  const result=validateClassRoster(resolved.names,$('className').value);
  rosterStatus.hidden=!result.hasRoster;
  rosterStatus.className=result.unknown.length?'name-roster-warning':'hint';
- rosterStatus.textContent=result.unknown.length?`待确认姓名：${result.unknown.join('、')}。这些名字不在已确认的${$('className').value}名单中，请对照原图修改；暂不生成报告或记账。`:result.hasRoster?`已按${$('className').value}的已确认名单校验姓名。`:'';
+ rosterStatus.textContent=result.unknown.length?`待确认姓名：${result.unknown.join('、')}。尚未收录到${$('className').value}名单。若是错字请修改；若是新同学，核对姓名后点击下方按钮加入。`:result.hasRoster?`已按${$('className').value}的已确认名单校验姓名。`:'';
+ addStudents.hidden=!result.unknown.length;addStudents.textContent=`确认新同学姓名无误，加入${$('className').value}`;
  $('names').classList.toggle('name-roster-invalid',result.unknown.length>0);
  return result.unknown.length===0;
 }
@@ -112,7 +123,7 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
  }catch(e){releaseOCR();status('ocr-status',`识别未完成：${e.message||'图片无法读取'}。可手动填写到课名单。`);ocrReload.hidden=false;}finally{clearInterval(ticker);idleOCR();$('screens').disabled=false;$('generate').disabled=false;if(recognized.length)ocrReload.hidden=true;}};
 $('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
 const generateReport=$('generate').onclick;
-$('generate').onclick=()=>{status('form-status','');if(!refreshRosterValidation()){status('form-status','班级名单中有待确认姓名，请先对照原图修正。');return;}generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
+$('generate').onclick=()=>{status('form-status','');if(!refreshRosterValidation()){status('form-status','有待确认姓名，请核对后修改，或确认加入本班。');return;}generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
 $('copy').onclick=async()=>{if(!$('report').value)return status('report-status','请先生成报告。');try{await navigator.clipboard.writeText($('report').value);status('report-status','已复制，可以粘贴发送。');}catch{$('report').focus();$('report').select();status('report-status','请长按选中的文字，选择复制。')}};
 function renderHistory(){$('history').replaceChildren();if(!history.length){$('history').textContent='保存后的报告会出现在这里。';return;}history.forEach((h,i)=>{const row=document.createElement('div'),b=document.createElement('button'),del=document.createElement('button');b.textContent=h.title;b.onclick=()=>{$('report').value=h.text;status('report-status','已打开历史报告。')};del.textContent='删除';del.setAttribute('aria-label',`删除 ${h.title}`);del.onclick=()=>{if(confirm('删除这份历史报告？')){history.splice(i,1);try{localStorage.setItem('bio-history',JSON.stringify(history));}catch{}renderHistory()}};row.append(b,del);$('history').append(row)})}
 $('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${$('className').value||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});

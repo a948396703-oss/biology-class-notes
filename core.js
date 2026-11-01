@@ -3,7 +3,7 @@ let rememberedNames={};
 knownNameCorrections['孙个盛']='孙偲盛';
 Object.assign(knownNameCorrections,{'孙借盛':'孙偲盛','吕晚硕':'吕晨硕','刘纯瑗':'刘纯瑞'});
 try{const saved=JSON.parse(localStorage.getItem('bio-name-corrections')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))rememberedNames=saved;}catch{}
-export function isConfirmedName(name){return Object.values(knownNameCorrections).includes(name)||Object.values(classRosters).some(roster=>roster.includes(name));}
+export function isConfirmedName(name){return Object.values(knownNameCorrections).includes(name)||classNames.some(c=>getClassRoster(c)?.includes(name));}
 export function cleanName(s){
  const name=s.trim().replace(/^20\d{2}\s*/, '').replace(/\d+$/, '').trim();
  // 已核准的名单和纠错优先；旧本机记忆不能反向改坏正确姓名。
@@ -33,7 +33,26 @@ export function rememberNameCorrection(from,to){
 export function forgetNameCorrection(from){const next={...rememberedNames};delete next[from];localStorage.setItem('bio-name-corrections',JSON.stringify(next));rememberedNames=next;}
 export const classNames=['李京洋班','赵泳贺班','李明哲班','杨清惠班','杨棣班'];
 export const classRosters={'杨棣班':['孙偲盛','姚婷岚','杨棣','吕晨硕','刘纯瑞']};
-export function reconcileClassRoster(names,className,roster=classRosters[className]){
+const rosterKey='bio-class-students-v1';
+function savedClassStudents(){
+ try{const data=JSON.parse(localStorage.getItem(rosterKey)||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{};}catch{return {};}
+}
+export function getClassRoster(className){
+ const base=classRosters[className],saved=savedClassStudents()[className];
+ const extra=Array.isArray(saved)?saved.filter(n=>typeof n==='string'&&/^[\u4e00-\u9fff]{2,8}$/.test(n)):[];
+ return base||extra.length?[...new Set([...(base||[]),...extra])]:null;
+}
+export function addClassStudents(className,names){
+ if(!classNames.includes(className))throw Error('请先选择班级。');
+ const normalized=[...new Set(names.map(cleanName))];
+ if(!normalized.length||normalized.some(n=>!/^[\u4e00-\u9fff]{2,8}$/.test(n)))throw Error('请先核对新同学姓名。');
+ const data=savedClassStudents();
+ const next={...data,[className]:[...new Set([...(getClassRoster(className)||[]),...normalized])]};
+ // 保存成功后才改变名单；存储失败时保留待确认状态。
+ localStorage.setItem(rosterKey,JSON.stringify(next));
+ return getClassRoster(className);
+}
+export function reconcileClassRoster(names,className,roster=getClassRoster(className)){
  const normalized=names.map(cleanName),corrections=[];
  if(!roster)return {names:normalized,corrections,unknown:[]};
  const used=new Set(normalized.filter(name=>roster.includes(name)));
@@ -46,7 +65,7 @@ export function reconcileClassRoster(names,className,roster=classRosters[classNa
  return {names:resolved,corrections,unknown:resolved.filter(name=>!roster.includes(name))};
 }
 export function validateClassRoster(names,className){
- const roster=names.length>1?classRosters[className]:null;
+ const roster=names.length>1?getClassRoster(className):null;
  return {hasRoster:Boolean(roster),unknown:roster?[...new Set(names.map(cleanName).filter(name=>!roster.includes(name)))]:[]};
 }
 export function matchClass(attendees,rosterText){
@@ -64,7 +83,7 @@ export function matchClass(attendees,rosterText){
  const header=dateStart<0?'':normalized.slice(0,dateStart);
  const titled=classNames.filter(c=>header.includes(c.slice(0,-1)));
  if(titled.length)return {candidates:titled,source:'截图班级标题'};
- const rosterMatches=Object.entries(classRosters).filter(([,roster])=>present.size>=2&&[...present].every(name=>roster.includes(name))).map(([name])=>name);
+ const rosterMatches=classNames.filter(className=>{const roster=getClassRoster(className);return roster&&present.size>=2&&[...present].every(name=>roster.includes(name));});
  return {candidates:rosterMatches,source:'已确认班级名单'};
 }
 export function namesFrom(s){return [...new Set(s.split(/[\s,，、;；]+/).map(cleanName).filter(Boolean))];}
@@ -95,7 +114,7 @@ export function randomPraise(grouped,random=Math.random){
 }
 export function makeReport({className,date,teacher,names,chapters,homework,mode,knowledge,note}){
  if((names.length>1&&!className.trim())||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
- if(validateClassRoster(names,className).unknown.length)throw Error('班级名单中有待确认姓名，请先对照原图修正。');
+ if(validateClassRoster(names,className).unknown.length)throw Error('有待确认姓名，请核对后修改，或确认加入本班。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
  const praise=randomPraise(names.length>5);
