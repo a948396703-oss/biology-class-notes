@@ -1,5 +1,5 @@
-import {cleanName} from './core.js?v=20261101.1';
-import {mountBenchmarks} from './benchmarks.js?v=20261101.1';
+import {cleanName} from './core.js?v=20261109.1';
+import {mountBenchmarks} from './benchmarks.js?v=20261109.1';
 
 export const money = cents => (cents / 100).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2});
 export function toCents(value) {
@@ -42,7 +42,7 @@ export function readPriceRows(blocks,top,bottom) {
  return rows;
 }
 
-export function mountIncome(){
+export function mountIncome(currentLabel){
  const $=id=>document.getElementById(id);
  const panel=document.createElement('section');panel.className='card income-card';
  panel.innerHTML=`<div class="section-title"><span class="number">¥</span><h2>让努力，看得见</h2><span class="pill">收入账本</span></div>
@@ -121,7 +121,7 @@ export function mountIncome(){
    sync();const attendees=names();
    if(expectedCount!==null&&attendees.length!==expectedCount){$('income-status').textContent='报告已生成；名单人数与截图不一致，暂未记账，请核对名单后再次生成。';return;}
    if(attendees.some(n=>!priceMap.has(n))){$('income-status').textContent='报告已生成；到课学生金额未齐，暂未记账，请补齐金额后再次生成。';return;}
-   const date=$('date').value,time=$('income-time').value,label=attendees.length===1?attendees[0]:$('className').value;
+   const date=$('date').value,time=$('income-time').value,label=currentLabel(attendees);
    const entry=normalizeIncome({id:sessionKey(date,time,label),date,time,label,grossCents:attendees.reduce((s,n)=>s+priceMap.get(n),0),names:attendees,minutes:80});
    const result=upsertIncome(entries,entry);
    try{write(result.entries);}catch{$('income-status').textContent='报告已生成，但收入保存失败，请先导出账目再重试。';return;}

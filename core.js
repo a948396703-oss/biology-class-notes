@@ -112,8 +112,14 @@ export function randomPraise(grouped,random=Math.random){
  const first=random()<.5?1:2;
  return grouped?[pool.slice(0,first),pool.slice(first,3)]:[pool.slice(0,first)];
 }
-export function makeReport({className,date,teacher,names,chapters,homework,mode,knowledge,note}){
- if((names.length>1&&!className.trim())||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
+export const CUSTOM_CLASS='custom';
+export function lessonLabel(className,names,customClassName=''){
+ if(names.length===1)return names[0];
+ return className===CUSTOM_CLASS?(customClassName.trim()||names.join('、')):className.trim();
+}
+export function makeReport({className,customClassName,date,teacher,names,chapters,homework,mode,knowledge,note}){
+ const displayClass=lessonLabel(className,names,customClassName);
+ if((names.length>1&&!displayClass)||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
  if(validateClassRoster(names,className).unknown.length)throw Error('有待确认姓名，请核对后修改，或确认加入本班。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
@@ -128,6 +134,5 @@ export function makeReport({className,date,teacher,names,chapters,homework,mode,
   const paragraph2=[`${second.join('、')}这${second.length}名同学本节课也围绕${content}进行了${mode}。`,`这几名同学${praise[1].join('，')}，这些表现值得肯定。`,'课后可以把本节课的知识点再梳理一遍，做题时注意看清题目要求，把思路理顺，继续努力！'].filter(Boolean).join('');
   feedback=paragraph1+'\n\n'+paragraph2+(note.trim()?'\n补充反馈：'+note.trim():'');
  }
- const displayClass=names.length===1?names[0]:className.trim();
  return `◆学生：${displayClass}\n◆时间：${Number(month)}.${Number(day)}\n◆科目：生物\n◆教师：${teacher.trim()}\n◆内容：${content}\n———————\n📝今天作业：${randomHomework()}\n———————\n◆课堂反馈：\n${feedback}`;
 }

@@ -1,12 +1,22 @@
-import {books,pickKnowledge} from './catalog.js?v=20261101.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261101.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261101.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,addClassStudents,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261101.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 11.01.1 · 新同学确认加入';document.querySelector('footer').append(buildLabel);
+import {books,pickKnowledge} from './catalog.js?v=20261109.1';
+import {mountIncome,readPriceRows} from './income.js?v=20261109.1';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261109.1';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,CUSTOM_CLASS,lessonLabel,addClassStudents,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261109.1';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 11.09.1 · 自定义班级';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
-$('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)));
-const income=mountIncome();
+$('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)),new Option('自定义（用到课姓名）',CUSTOM_CLASS));
+let customEdited=false;
+const currentLabel=names=>lessonLabel($('className').value,names,$('custom-class-name').value);
+const income=mountIncome(currentLabel);
+function refreshCustomClass(){
+ const names=namesFrom($('names').value);
+ const custom=$('className').value===CUSTOM_CLASS&&names.length!==1;
+ $('custom-class').hidden=!custom;
+ if(custom&&!customEdited)$('custom-class-name').value=names.join('、');
+}
+function resetCustomClass(){customEdited=false;$('custom-class-name').value='';}
+$('custom-class-name').oninput=()=>{customEdited=Boolean($('custom-class-name').value.trim());};
 const nameHelp=$('names').closest('label').nextElementSibling;
 const rosterStatus=document.createElement('p');rosterStatus.id='roster-validation';rosterStatus.setAttribute('role','status');rosterStatus.hidden=true;$('names').closest('label').after(rosterStatus);
 const addStudents=document.createElement('button');addStudents.id='add-class-students';addStudents.type='button';addStudents.className='secondary';addStudents.hidden=true;rosterStatus.after(addStudents);
@@ -29,6 +39,7 @@ function refreshRosterValidation(){
  rosterStatus.textContent=result.unknown.length?`待确认姓名：${result.unknown.join('、')}。尚未收录到${$('className').value}名单。若是错字请修改；若是新同学，核对姓名后点击下方按钮加入。`:result.hasRoster?`已按${$('className').value}的已确认名单校验姓名。`:'';
  addStudents.hidden=!result.unknown.length;addStudents.textContent=`确认新同学姓名无误，加入${$('className').value}`;
  $('names').classList.toggle('name-roster-invalid',result.unknown.length>0);
+ refreshCustomClass();
  return result.unknown.length===0;
 }
 $('className').addEventListener('change',refreshRosterValidation);
@@ -47,8 +58,8 @@ $('screens').addEventListener('change',()=>{if($('screens').files.length){recogn
 const singleClassHint=document.createElement('p');singleClassHint.className='hint';singleClassHint.hidden=true;$('className').closest('label').before(singleClassHint);
 nameHelp.textContent='自动去掉姓名前的年份和末尾数字。请核对姓名、生僻字和人数；单个错字修改后勾选核对，会记住本次纠正。';
 $('screens').addEventListener('change',()=>{if($('screens').files.length)income.reset();});
-function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级，请从班级列表中选择。');}
-$('className').onchange=()=>status('class-hint','已手动选择班级。');
+function applyClass(rosterText){const {candidates,source}=matchClass(namesFrom($('names').value),rosterText);$('className').value=candidates.length===1?candidates[0]:'';status('class-hint',candidates.length===1?`根据${source}匹配：${candidates[0]}（可修改）`:candidates.length>1?`匹配到多个班级：${candidates.join('、')}，请手动选择。`:'未能确定班级。可选择已有班级，或选择「自定义（用到课姓名）」。');}
+$('className').onchange=()=>status('class-hint',$('className').value===CUSTOM_CLASS?'本节课使用自定义班级。':'已手动选择班级。');
 function status(id,s){$(id).textContent=s;}
 function persist(){try{localStorage.setItem('bio-settings',JSON.stringify(Object.fromEntries(fields.map(k=>[k,$(k).value]))));localStorage.setItem('bio-chapters',JSON.stringify(chosen));}catch{status('form-status','浏览器未允许本地保存，仍可生成和复制。');}}
 books.forEach((b,i)=>$('book').add(new Option(b[0],i)));
@@ -59,7 +70,7 @@ function renderChapters(){$('chapters').replaceChildren();chosen.forEach(i=>{con
 chapterOptions();$('book').onchange=()=>{chosen=[];chapterOptions();persist()};$('chapter').onchange=()=>{if($('chapter').value==='')return;const n=+$('chapter').value;if(!chosen.includes(n))chosen.push(n);chosen.sort((a,b)=>a-b);renderChapters();persist();$('chapter').value=''};
 function updateCount(){const names=namesFrom($('names').value),n=names.length;status('count',`${n} 人`);$('confirmed').checked=false;const warning=countWarning(expectedCount,n);status('attendance-warning',warning);$('attendance-warning').hidden=!warning;$('className').closest('label').hidden=n===1;singleClassHint.hidden=n!==1;singleClassHint.textContent=n===1?`单人课 · ${names[0]}，无需选择班级。`:'';refreshRosterValidation();}
 $('names').oninput=updateCount;$('names').onblur=()=>{$('names').value=namesFrom($('names').value).join('、')};fields.filter(x=>x!=='book').forEach(k=>$(k).onchange=persist);
-$('parse').onclick=()=>{const r=parseAttendance($('ocr-text').value);expectedCount=r.count;$('names').value=r.names.join('、');applyClass($('ocr-text').value);if(r.date)$('date').value=r.date;updateCount();status('ocr-status',r.names.length?`提取到 ${r.names.length} 位学生${r.count!==null?`，截图标记到课 ${r.count} 人`:''}。请逐一核对。`:'未能可靠提取到课名单，请在“到课学生”中手动填写。');};
+$('parse').onclick=()=>{const r=parseAttendance($('ocr-text').value);resetCustomClass();expectedCount=r.count;$('names').value=r.names.join('、');applyClass($('ocr-text').value);if(r.date)$('date').value=r.date;updateCount();status('ocr-status',r.names.length?`提取到 ${r.names.length} 位学生${r.count!==null?`，截图标记到课 ${r.count} 人`:''}。请逐一核对。`:'未能可靠提取到课名单，请在“到课学生”中手动填写。');};
 let ocrScriptPromise=null,ocrWorkerPromise=null,ocrIdleTimer,ocrReady=false,ocrStage='正在加载识别程序',ocrJobStage='正在读取截图',ocrStarted=0;
 const ocrReload=document.createElement('button');ocrReload.type='button';ocrReload.className='secondary';ocrReload.hidden=true;ocrReload.textContent='等待过久？重新加载识别';$('ocr-status').after(ocrReload);ocrReload.onclick=()=>location.reload();
 function showOCRStage(){if(!$('screens').disabled)return;const seconds=Math.floor((performance.now()-ocrStarted)/1000);status('ocr-status',`${ocrReady?ocrJobStage:ocrStage}…${seconds>=3?` 已等待 ${seconds} 秒`:''}`);ocrReload.hidden=seconds<15;}
@@ -92,7 +103,7 @@ async function imageCanvas(file){
 function attendanceCrop(c){const ctx=c.getContext('2d'),p=ctx.getImageData(0,0,c.width,c.height).data;let start=-1,end=-1,run=0,tagBottom=-1;for(let y=Math.floor(c.height*.12);y<c.height;y++){let blue=0,purple=0;for(let x=Math.floor(c.width*.04);x<c.width*.13;x++){const i=(y*c.width+x)*4,r=p[i],g=p[i+1],b=p[i+2];if(b>120&&b>r*1.4&&g>r*1.2)blue++;if(b>150&&r>90&&r>g*1.2)purple++;}const width=c.width*.09;const right=(y*c.width+Math.floor(c.width*.9))*4;const white=p[right]>225&&p[right+1]>225&&p[right+2]>225;if(blue>width*.6&&white){run++;if(run>15&&start<0)start=y-run;if(start>=0)tagBottom=y;}else run=0;if(start>=0&&y>start+50&&purple>width*.6){end=y;break;}}
  // 截图可能只包含到课卡片，没有下一张紫色请假卡片；此时到课区域延伸至图底。
  if(start<0)return null;const openEnded=end<0;if(openEnded)end=c.height;const out=document.createElement('canvas');out.width=c.width;out.height=end-start;out.getContext('2d').drawImage(c,0,start,c.width,end-start,0,0,c.width,end-start);return {canvas:out,top:start,bottom:end,tagBottom,openEnded};}
-$('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.length)return;$('screens').disabled=true;$('generate').disabled=true;$('previews').replaceChildren();$('names').value='';$('className').value='';status('class-hint','识别完成后自动匹配班级。');expectedCount=null;updateCount();ocrStarted=performance.now();ocrJobStage='正在读取截图';ocrReload.hidden=true;const ticker=setInterval(showOCRStage,1000);let worker;let recognized=[];try{const ready=getOCRWorker();ready.catch(()=>{});showOCRStage();const firstCanvas=await imageCanvas(files[0]);const preview=new Image();preview.src=firstCanvas.toDataURL('image/jpeg',.6);preview.alt='点名截图 1';$('previews').append(preview);worker=await ready;await worker.setParameters({tessedit_pageseg_mode:'11'});
+$('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.length)return;$('screens').disabled=true;$('generate').disabled=true;$('previews').replaceChildren();resetCustomClass();$('names').value='';$('className').value='';status('class-hint','识别完成后自动匹配班级。');expectedCount=null;updateCount();ocrStarted=performance.now();ocrJobStage='正在读取截图';ocrReload.hidden=true;const ticker=setInterval(showOCRStage,1000);let worker;let recognized=[];try{const ready=getOCRWorker();ready.catch(()=>{});showOCRStage();const firstCanvas=await imageCanvas(files[0]);const preview=new Image();preview.src=firstCanvas.toDataURL('image/jpeg',.6);preview.alt='点名截图 1';$('previews').append(preview);worker=await ready;await worker.setParameters({tessedit_pageseg_mode:'11'});
  let allText=[],counts=[],classTexts=[],priceRows=[];for(let i=0;i<files.length;i++){
  const c=i===0?firstCanvas:await imageCanvas(files[i]);if(i>0){const img=new Image();img.src=c.toDataURL('image/jpeg',.6);img.alt=`点名截图 ${i+1}`;$('previews').append(img);}
  await worker.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:''});
@@ -121,9 +132,9 @@ $('screens').onchange=async()=>{const files=[...$('screens').files];if(!files.le
  $('ocr-text').value=allText.join('\n');$('names').value=[...new Set(recognized.map(cleanName))].join('、');applyClass(classTexts.join('\n'));updateCount();status('ocr-status',recognized.length?`识别完成：当前 ${namesFrom($('names').value).length} 人${expectedCount!==null?`，截图标记到课 ${expectedCount} 人`:''}。请核对姓名与人数。`:'没有可靠识别出姓名，请用实况文本粘贴，或手动填写到课学生。');
  income.recognize(priceRows.map(row=>({...row,name:reconcileClassRoster([row.name],$('className').value).names[0]})),classTexts.join('\n'));recognizedBaseline=namesFrom($('names').value);
  }catch(e){releaseOCR();status('ocr-status',`识别未完成：${e.message||'图片无法读取'}。可手动填写到课名单。`);ocrReload.hidden=false;}finally{clearInterval(ticker);idleOCR();$('screens').disabled=false;$('generate').disabled=false;if(recognized.length)ocrReload.hidden=true;}};
-$('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
+$('generate').onclick=()=>{try{if(!$('confirmed').checked)throw Error('请先核对并勾选到课名单。');const b=books[+$('book').value];const numbers=['一','二','三','四','五','六'];const chapters=chosen.map(i=>`第${numbers[i]}章`);const knowledge=$('specific').value.trim()||pickKnowledge(chosen.slice(0,2).map(i=>b[1][i]));$('report').value=makeReport({className:$('className').value,customClassName:$('custom-class-name').value,date:$('date').value,teacher:$('teacher').value,names:namesFrom($('names').value),chapters,mode:$('mode').value,knowledge,note:$('note').value});persist();status('form-status','报告已生成，可以编辑后复制。');if(innerWidth<760)$('report').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){status('form-status',e.message)}};
 const generateReport=$('generate').onclick;
 $('generate').onclick=()=>{status('form-status','');if(!refreshRosterValidation()){status('form-status','有待确认姓名，请核对后修改，或确认加入本班。');return;}generateReport();if($('form-status').textContent==='报告已生成，可以编辑后复制。')income.record(expectedCount);};
 $('copy').onclick=async()=>{if(!$('report').value)return status('report-status','请先生成报告。');try{await navigator.clipboard.writeText($('report').value);status('report-status','已复制，可以粘贴发送。');}catch{$('report').focus();$('report').select();status('report-status','请长按选中的文字，选择复制。')}};
 function renderHistory(){$('history').replaceChildren();if(!history.length){$('history').textContent='保存后的报告会出现在这里。';return;}history.forEach((h,i)=>{const row=document.createElement('div'),b=document.createElement('button'),del=document.createElement('button');b.textContent=h.title;b.onclick=()=>{$('report').value=h.text;status('report-status','已打开历史报告。')};del.textContent='删除';del.setAttribute('aria-label',`删除 ${h.title}`);del.onclick=()=>{if(confirm('删除这份历史报告？')){history.splice(i,1);try{localStorage.setItem('bio-history',JSON.stringify(history));}catch{}renderHistory()}};row.append(b,del);$('history').append(row)})}
-$('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${$('className').value||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});
+$('save').onclick=()=>{if(!$('report').value)return status('report-status','请先生成报告。');const h={title:`${$('date').value} · ${currentLabel(namesFrom($('names').value))||'课后报告'}`,text:$('report').value};const next=[h,...history.filter(x=>x.text!==h.text)].slice(0,30);try{localStorage.setItem('bio-history',JSON.stringify(next));history=next;renderHistory();status('report-status','已保存在本机，最多保留30份。')}catch{status('report-status','本机存储不可用，请复制报告保存。')}};renderHistory();$('install').onclick=()=>$('help').showModal();$('close-help').onclick=()=>$('help').close();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});
