@@ -1,4 +1,4 @@
-import {composeFeedback,createFeedbackPicker} from './feedback.js?v=20261109.2';
+import {composeFeedback,createFeedbackPicker} from './feedback.js?v=20261109.3';
 const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','李玖':'李玟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
 let rememberedNames={};
 knownNameCorrections['孙个盛']='孙偲盛';
@@ -118,12 +118,12 @@ export function lessonLabel(className,names,customClassName=''){
  if(names.length===1)return names[0];
  return className===CUSTOM_CLASS?(customClassName.trim()||names.join('、')):className.trim();
 }
-export function makeReport({className,customClassName,date,teacher,names,chapters,homework,mode,knowledge,note,feedbackPicker=createFeedbackPicker().pick}){
+export function makeReport({className,customClassName,date,teacher,names,chapters,homework,mode,knowledge,note,summary,feedbackPicker=createFeedbackPicker().pick}){
  const displayClass=lessonLabel(className,names,customClassName);
  if((names.length>1&&!displayClass)||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
  if(validateClassRoster(names,className).unknown.length)throw Error('有待确认姓名，请核对后修改，或确认加入本班。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
- const feedback=composeFeedback({names,content,mode,knowledge,note,praisePool},feedbackPicker);
+ const feedback=composeFeedback({names,content,mode,knowledge,note,summary,praisePool},feedbackPicker);
  return `◆学生：${displayClass}\n◆时间：${Number(month)}.${Number(day)}\n◆科目：生物\n◆教师：${teacher.trim()}\n◆内容：${content}\n———————\n📝今天作业：${randomHomework()}\n———————\n◆课堂反馈：\n${feedback}`;
 }

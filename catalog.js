@@ -1,3 +1,4 @@
+import {extraChapterKnowledge} from './chapter-summaries.js?v=20261109.3';
 // 人教版高中生物2019版章级目录；知识提示为原创简述。
 export const books = [
  ['必修1 · 分子与细胞',[
@@ -73,7 +74,7 @@ export function pickKnowledge(entries,random=Math.random,pick){
  const count=countRoll<.78?1:2;
  for(let i=chapters.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[chapters[i],chapters[j]]=[chapters[j],chapters[i]];}
  const choose=([title,fallback],n)=>{
-  const pool=variants[title]||[fallback];
+  const pool=[...(variants[title]||[fallback]),...(extraChapterKnowledge[title]||[])];
   if(pick)return pick('knowledge:'+title,pool,n);
   const available=[...pool],result=[];
   while(available.length&&result.length<n)result.push(available.splice(Math.floor(random()*available.length),1)[0]);
