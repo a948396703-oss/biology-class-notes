@@ -1,3 +1,4 @@
+import {composeFeedback,createFeedbackPicker} from './feedback.js?v=20261109.2';
 const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','李玖':'李玟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
 let rememberedNames={};
 knownNameCorrections['孙个盛']='孙偲盛';
@@ -103,7 +104,7 @@ export function parseAttendance(text){
  const names=[...area.matchAll(/20\d{2}\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]);
  return {names:[...new Set(names)],count:count?Number(count[1]):null,date:date?`${date[1]}-${date[2].padStart(2,'0')}-${date[3].padStart(2,'0')}`:'',found:start>=0};
 }
-export const praisePool=['听课比较专注','参与课堂交流的态度积极','思考问题比较主动','学习态度认真踏实','梳理知识的思路比较清晰','面对新知识愿意尝试','学习过程中有耐心','对知识之间的联系比较留心'];
+export const praisePool=['听课比较专注','参与课堂交流的态度积极','思考问题比较主动','学习态度认真踏实','梳理知识的思路比较清晰','面对新知识愿意尝试','学习过程中有耐心','对知识之间的联系比较留心','遇到没想通的地方肯多想一会儿','理解新概念时愿意联系旧知识','跟着例子梳理概念时思路比较稳','复盘时愿意回头找原因','分析问题时注意到了题目条件','听到不同的思路时愿意对照着想','做题时愿意把思路先理顺','对容易混的地方有辨析的意识'];
 export const homeworkOptions=['复习错题','背笔记','做习题'];
 export function randomHomework(random=Math.random){return homeworkOptions[Math.floor(random()*homeworkOptions.length)];}
 export function randomPraise(grouped,random=Math.random){
@@ -117,22 +118,12 @@ export function lessonLabel(className,names,customClassName=''){
  if(names.length===1)return names[0];
  return className===CUSTOM_CLASS?(customClassName.trim()||names.join('、')):className.trim();
 }
-export function makeReport({className,customClassName,date,teacher,names,chapters,homework,mode,knowledge,note}){
+export function makeReport({className,customClassName,date,teacher,names,chapters,homework,mode,knowledge,note,feedbackPicker=createFeedbackPicker().pick}){
  const displayClass=lessonLabel(className,names,customClassName);
  if((names.length>1&&!displayClass)||!date||!names.length||!chapters.length)throw Error('请填写班级、日期、到课学生，并选择章节。');
  if(validateClassRoster(names,className).unknown.length)throw Error('有待确认姓名，请核对后修改，或确认加入本班。');
  const [,month,day]=date.split('-');
  const content=chapters.join('、');
- const praise=randomPraise(names.length>5);
- const intro=names.length===1?`本节课围绕${content}进行了${mode}，学习了相关内容。`:`${names.join('、')}${names.length}名同学本节课${mode}了${content}的相关内容。`;
- let feedback;
- if(names.length<=5){
-  feedback=[intro,`课堂上${praise[0].join('，')}，值得表扬。`,knowledge,note.trim(), '课后结合今天的作业再巩固一下，继续加油！'].filter(Boolean).join('');
- }else{
-  const middle=Math.ceil(names.length/2),first=names.slice(0,middle),second=names.slice(middle);
-  const paragraph1=[`${first.join('、')}这${first.length}名同学本节课${mode}了${content}的相关内容。`,`课堂上${praise[0].join('，')}，值得表扬。`,knowledge,'课后结合今天的作业再巩固一下，继续加油！'].filter(Boolean).join('');
-  const paragraph2=[`${second.join('、')}这${second.length}名同学本节课也围绕${content}进行了${mode}。`,`这几名同学${praise[1].join('，')}，这些表现值得肯定。`,'课后可以把本节课的知识点再梳理一遍，做题时注意看清题目要求，把思路理顺，继续努力！'].filter(Boolean).join('');
-  feedback=paragraph1+'\n\n'+paragraph2+(note.trim()?'\n补充反馈：'+note.trim():'');
- }
+ const feedback=composeFeedback({names,content,mode,knowledge,note,praisePool},feedbackPicker);
  return `◆学生：${displayClass}\n◆时间：${Number(month)}.${Number(day)}\n◆科目：生物\n◆教师：${teacher.trim()}\n◆内容：${content}\n———————\n📝今天作业：${randomHomework()}\n———————\n◆课堂反馈：\n${feedback}`;
 }
