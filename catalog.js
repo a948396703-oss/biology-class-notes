@@ -1,4 +1,4 @@
-import {extraChapterKnowledge} from './chapter-summaries.js?v=20261113.2';
+import {extraChapterKnowledge} from './chapter-summaries.js?v=20261113.3';
 // 人教版高中生物2019版章级目录；知识提示为原创简述。
 export const books = [
  ['必修1 · 分子与细胞',[

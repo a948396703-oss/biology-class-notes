@@ -27,43 +27,36 @@ const openings={
  复习:['{人}本节课回顾了{章}的重点。','{人}本节课复习了{章}。','{人}本节课重新梳理了{章}的内容。'],
  练习:['{人}本节课做了{章}的相关练习。','{人}本节课围绕{章}做了练习。','{人}本节课练习了{章}的相关题目。']
 };
-const praiseLines=['课堂上{点}。','课堂表现方面，{点}。','{点}。','学习过程中，{点}。'];
-// 手填课堂内容时，不另猜本节实际讲了哪些小知识点。
-const endings=[
- '这个阶段先把主要概念分清就够了。等相似题型多见几次，概念之间的关系也会更熟悉。',
- '这部分真正需要一点时间的，是把会背的定义用到不同材料里。刚开始做得慢一点很正常。',
- '目前更重要的是把思路走完整，暂时不必太看重速度。等判断的依据稳定下来，做题自然会更顺。',
- '这一部分看懂课本和独立分析材料之间有个过渡。多见几种问法以后，通常就更容易认出考的是哪一步。',
- '这类内容开始学时容易觉得细节多，先把几条关键关系理顺，后面复习就不必每次从头记。',
- '能把结论和理由分开说清，是这部分很重要的一步。基础比较稳了，遇到新题也更有把握。',
- '现在的难度主要在条件一变，原来的判断方法还能不能用。这个能力往往是在几次对照练习中慢慢形成的。',
- '有些地方初学时看着相近，做到具体题里差别才明显。把几个常见例子放在一起，理解会逐渐清楚。',
- '这一部分的内容前后联系比较紧。等主要环节连起来，原来零散的知识点就更容易记住。',
- '遇到新材料时能抓到关键信息，比一开始把答案写得很完整更重要。这一点通常会随着练习慢慢改善。',
- '这节内容不必一下子掌握得很细。能先区分主要概念，后面的例题就有地方落脚。',
- '这部分从认识概念到熟练应用需要一个过程。几种常见情形分清以后，再碰到变化也更容易处理。'
-];
-// 单独轮换导语，保持小结的原文和跨班去重记录不变。
+// 按课型筛选，预习不评价做题或订正；轮换仍以原池的稳定序号为准。
+const practicePraise=new Set([9,10,11,12,13,14]);
+const previewExcluded=new Set([...practicePraise,15]);
+const canPraise=(mode,index)=>mode==='预习'?!previewExcluded.has(index):mode==='学习'?!practicePraise.has(index):true;
 export const summaryLeads=[
  '这一章里，',
- '从本章的内容来看，',
- '这部分有个值得留意的地方：',
- '梳理这一章时，有一点比较关键：',
- '本章有个细节值得单独理一理：'
+ '本章可以留意这样一个细节：',
+ '具体到本章的内容，',
+ '梳理本章时，有一点值得留意：',
+ '这部分还有一个值得关注的知识点：'
 ];
+const neutralLead=lead=>lead==='这一章里，'||lead.startsWith('梳理本章');
+function addSummaryLead(summary,pick){
+ // 部分小结已有章内承接，避免“这一章里……这一章”或重复提示难点。
+ if(/^(?:这一章|本章|这部分)|^[^。！？]{0,20}这一章/.test(summary))return summary;
+ const neutral=/难点|容易混|容易写反|不容易|关键|值得|小关口|小难关/.test(summary.split('。',1)[0]);
+ return pick('summary-lead-v2',summaryLeads,1,lead=>!neutral||neutralLead(lead))[0]+summary;
+}
 const groupLabel=names=>names.join('、')+'这'+names.length+'名同学';
 export function composeFeedback({names,content,mode,knowledge,note,summary,praisePool},pick){
  const grouped=names.length>5, split=Math.ceil(names.length/2);
  const groups=grouped?[names.slice(0,split),names.slice(split)]:[names];
  const [opening]=pick('opening:'+mode,openings[mode]||openings.学习);
  const firstCount=pick('praise-count',[1,2])[0];
- const points=pick('praise-points',praisePool,grouped?3:firstCount);
+ const points=pick('praise-points-v2',praisePool,grouped?3:firstCount,point=>canPraise(mode,praisePool.indexOf(point)));
  const first=opening.replace('{人}',names.length===1?'':groupLabel(groups[0])).replace('{章}',content);
- const [praiseForm]=pick('praise-form-v2',praiseLines);
- const paragraphs=[first+praiseForm.replace('{点}',points.slice(0,firstCount).join('，'))];
+ const paragraphs=[first.slice(0,-1)+'，'+points.slice(0,firstCount).join('，')+'。'];
  if(grouped)paragraphs.push(groupLabel(groups[1])+points.slice(firstCount).join('，')+'。');
  if(knowledge?.trim())paragraphs.push('本节重点：'+knowledge.trim());
  if(note.trim())paragraphs.push(note.trim());
- paragraphs.push(summary?pick('summary-lead-v1',summaryLeads)[0]+summary:pick('manual-summary',endings)[0]);
+ if(summary)paragraphs.push(addSummaryLead(summary,pick));
  return paragraphs.join('\n\n');
 }
