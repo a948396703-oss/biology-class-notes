@@ -1,4 +1,4 @@
-import {composeFeedback,createFeedbackPicker} from './feedback.js?v=20261113.1';
+import {composeFeedback,createFeedbackPicker} from './feedback.js?v=20261113.2';
 const knownNameCorrections={'王祉茂':'王祎茁','王视茂':'王祎茁','王祯茂':'王祎茁','王祎茂':'王祎茁','王祎卓':'王祎茁','李泽鉴':'李泽崟','李泽金':'李泽崟','李泽银':'李泽崟','李泽烨':'李泽崟','李玖':'李玟','褚泊妃':'褚泊妤','褚泗妤':'褚泊妤'};
 let rememberedNames={};
 knownNameCorrections['孙个盛']='孙偲盛';
@@ -104,7 +104,7 @@ export function parseAttendance(text){
  const names=[...area.matchAll(/20\d{2}\s*([\u4e00-\u9fff·]{2,8})\d*/g)].map(m=>m[1]);
  return {names:[...new Set(names)],count:count?Number(count[1]):null,date:date?`${date[1]}-${date[2].padStart(2,'0')}-${date[3].padStart(2,'0')}`:'',found:start>=0};
 }
-export const praisePool=['听课比较专注','参与课堂交流的态度积极','思考问题比较主动','学习态度认真踏实','梳理知识的思路比较清晰','面对新知识愿意尝试','学习过程中有耐心','对知识之间的联系比较留心','遇到没想通的地方肯多想一会儿','理解新概念时愿意联系旧知识','跟着例子梳理概念时思路比较稳','复盘时愿意回头找原因','分析问题时注意到了题目条件','听到不同的思路时愿意对照着想','做题时愿意把思路先理顺','对容易混的地方有辨析的意识'];
+export const praisePool=['听课比较专注','参与课堂交流的态度积极','思考问题比较主动','学习态度认真踏实','梳理知识的思路比较清晰','面对新知识愿意尝试','学习过程中有耐心','对知识之间的联系比较留心','能跟上课堂讲解的节奏','理解新概念时愿意联系旧知识','跟着例子梳理概念时思路比较稳','复盘时愿意回头找原因','分析问题时注意到了题目条件','听到不同的思路时愿意对照着想','做题时愿意把思路先理顺','对容易混的地方有辨析的意识'];
 export const homeworkOptions=['复习错题','背笔记','做习题'];
 export function randomHomework(random=Math.random){return homeworkOptions[Math.floor(random()*homeworkOptions.length)];}
 export function randomPraise(grouped,random=Math.random){

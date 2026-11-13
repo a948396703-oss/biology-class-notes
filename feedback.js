@@ -43,6 +43,14 @@ const endings=[
  '这节内容不必一下子掌握得很细。能先区分主要概念，后面的例题就有地方落脚。',
  '这部分从认识概念到熟练应用需要一个过程。几种常见情形分清以后，再碰到变化也更容易处理。'
 ];
+// 单独轮换导语，保持小结的原文和跨班去重记录不变。
+export const summaryLeads=[
+ '这一章里，',
+ '从本章的内容来看，',
+ '这部分有个值得留意的地方：',
+ '梳理这一章时，有一点比较关键：',
+ '本章有个细节值得单独理一理：'
+];
 const groupLabel=names=>names.join('、')+'这'+names.length+'名同学';
 export function composeFeedback({names,content,mode,knowledge,note,summary,praisePool},pick){
  const grouped=names.length>5, split=Math.ceil(names.length/2);
@@ -56,6 +64,6 @@ export function composeFeedback({names,content,mode,knowledge,note,summary,prais
  if(grouped)paragraphs.push(groupLabel(groups[1])+points.slice(firstCount).join('，')+'。');
  if(knowledge?.trim())paragraphs.push('本节重点：'+knowledge.trim());
  if(note.trim())paragraphs.push(note.trim());
- paragraphs.push(summary||pick('manual-summary',endings)[0]);
+ paragraphs.push(summary?pick('summary-lead-v1',summaryLeads)[0]+summary:pick('manual-summary',endings)[0]);
  return paragraphs.join('\n\n');
 }

@@ -1,10 +1,10 @@
-import {pickChapterSummary} from './chapter-summaries.js?v=20261113.1';
-import {createFeedbackPicker} from './feedback.js?v=20261113.1';
-import {books} from './catalog.js?v=20261113.1';
-import {mountIncome,readPriceRows} from './income.js?v=20261113.1';
-const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261113.1';document.head.append(incomeStyle);
-import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,CUSTOM_CLASS,lessonLabel,addClassStudents,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261113.1';
-const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 11.13.1 · 连贯反馈';document.querySelector('footer').append(buildLabel);
+import {pickChapterSummary} from './chapter-summaries.js?v=20261113.2';
+import {createFeedbackPicker} from './feedback.js?v=20261113.2';
+import {books} from './catalog.js?v=20261113.2';
+import {mountIncome,readPriceRows} from './income.js?v=20261113.2';
+const incomeStyle=document.createElement('link');incomeStyle.rel='stylesheet';incomeStyle.href='./income.css?v=20261113.2';document.head.append(incomeStyle);
+import {cleanName,namesFrom,parseAttendance,makeReport,positionedNames,countWarning,matchClass,classNames,CUSTOM_CLASS,lessonLabel,addClassStudents,validateClassRoster,reconcileClassRoster,confirmedNameChange,rememberNameCorrection,forgetNameCorrection} from './core.js?v=20261113.2';
+const buildLabel=document.createElement('p');buildLabel.id='build-version';buildLabel.textContent='版本 11.13.2 · 小结衔接';document.querySelector('footer').append(buildLabel);
 const $=id=>document.getElementById(id);let chosen=[],history=[],expectedCount=null;
 const fields=['teacher','book'];
 $('className').replaceChildren(new Option('请选择班级',''),...classNames.map(name=>new Option(name,name)),new Option('自定义（用到课姓名）',CUSTOM_CLASS));

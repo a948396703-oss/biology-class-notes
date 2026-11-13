@@ -1,7 +1,7 @@
-const CACHE='bio-notes-v26-coherent-feedback';
+const CACHE='bio-notes-v27-summary-leads';
 const OCR_CACHE='bio-ocr-resources-v1';
 const isOCR=request=>new URL(request.url).pathname.includes('/vendor/');
-const ASSETS=['./','./index.html','./style.css?v=20261113.1','./income.css?v=20261113.1','./app.js?v=20261113.1','./chapter-summaries.js?v=20261113.1','./feedback.js?v=20261113.1','./core.js?v=20261113.1','./catalog.js?v=20261113.1','./income.js?v=20261113.1','./benchmarks.js?v=20261113.1','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const ASSETS=['./','./index.html','./style.css?v=20261113.2','./income.css?v=20261113.2','./app.js?v=20261113.2','./chapter-summaries.js?v=20261113.2','./feedback.js?v=20261113.2','./core.js?v=20261113.2','./catalog.js?v=20261113.2','./income.js?v=20261113.2','./benchmarks.js?v=20261113.2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{const store=await caches.open(OCR_CACHE);for(const key of await caches.keys()){if(!key.startsWith('bio-notes-')||key===CACHE)continue;const old=await caches.open(key);for(const request of await old.keys()){if(isOCR(request)&&!await store.match(request)){const response=await old.match(request);if(response?.ok)await store.put(request,response);}}await caches.delete(key);}await self.clients.claim();})()));
 self.addEventListener('fetch',e=>{
