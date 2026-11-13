@@ -22,14 +22,12 @@ export function createFeedbackPicker(storage,random=Math.random){
 }
 
 const openings={
- 学习:['这一节主要学的是{章}。','本节课把{章}的内容过了一遍。','这节课的主题是{章}。','今天把学习重点放在了{章}。'],
- 预习:['这一节先预习了{章}。','今天先看了{章}的基本内容。','这节课先从{章}入手。','今天的安排是提前熟悉{章}。'],
- 复习:['这一节回顾了{章}。','今天把{章}的重点重新捋了一遍。','这节课的任务是复习{章}。','今天主要在巩固{章}。'],
- 练习:['这一节做了{章}的相关练习。','今天围绕{章}做了练习。','这节课把{章}放到题目里练了一遍。','今天的练习集中在{章}。']
+ 学习:['{人}本节课学习了{章}。','{人}本节课主要学习{章}的内容。','{人}本节课围绕{章}展开学习。'],
+ 预习:['{人}本节课预习了{章}。','{人}本节课初步了解了{章}的内容。','{人}本节课先熟悉了{章}的基本概念。'],
+ 复习:['{人}本节课回顾了{章}的重点。','{人}本节课复习了{章}。','{人}本节课重新梳理了{章}的内容。'],
+ 练习:['{人}本节课做了{章}的相关练习。','{人}本节课围绕{章}做了练习。','{人}本节课练习了{章}的相关题目。']
 };
-const groupLead=['{名}这{数}名同学，','{名}共{数}名同学，','{名}这组一共{数}名同学，'];
-const secondLead=['再说{名}这{数}名同学。','另一组是{名}，共{数}名同学。','也说说{名}这{数}名同学的表现。','接着看{名}这组，一共{数}名同学。'];
-const praiseLines=['课堂上{点}。','课堂表现里，比较好的是{点}。','有个表现挺好：{点}。','课堂上的表现值得肯定，{点}。','说到课堂表现，{点}。','课上的表现有亮点：{点}。','这节课比较值得一提的是，{点}。','课堂上能看出来，{点}。'];
+const praiseLines=['课堂上{点}。','课堂表现方面，{点}。','{点}。','学习过程中，{点}。'];
 // 手填课堂内容时，不另猜本节实际讲了哪些小知识点。
 const endings=[
  '这个阶段先把主要概念分清就够了。等相似题型多见几次，概念之间的关系也会更熟悉。',
@@ -45,19 +43,18 @@ const endings=[
  '这节内容不必一下子掌握得很细。能先区分主要概念，后面的例题就有地方落脚。',
  '这部分从认识概念到熟练应用需要一个过程。几种常见情形分清以后，再碰到变化也更容易处理。'
 ];
-const fill=(text,names)=>text.replace('{名}',names.join('、')).replace('{数}',names.length);
+const groupLabel=names=>names.join('、')+'这'+names.length+'名同学';
 export function composeFeedback({names,content,mode,knowledge,note,summary,praisePool},pick){
  const grouped=names.length>5, split=Math.ceil(names.length/2);
  const groups=grouped?[names.slice(0,split),names.slice(split)]:[names];
  const [opening]=pick('opening:'+mode,openings[mode]||openings.学习);
  const firstCount=pick('praise-count',[1,2])[0];
  const points=pick('praise-points',praisePool,grouped?3:firstCount);
- const forms=pick('praise-form',praiseLines,groups.length);
- const praise=(i,items)=>forms[i].replace('{点}',items.join('，'));
- const start=opening.replace('{章}',content);
- const first=groups[0].length===1?start:fill(pick('group-lead',groupLead)[0],groups[0])+start;
- const paragraphs=[[first,praise(0,points.slice(0,firstCount)),knowledge].filter(Boolean).join('')];
- if(grouped)paragraphs.push(fill(pick('second-lead',secondLead)[0],groups[1])+praise(1,points.slice(firstCount)));
+ const first=opening.replace('{人}',names.length===1?'':groupLabel(groups[0])).replace('{章}',content);
+ const [praiseForm]=pick('praise-form-v2',praiseLines);
+ const paragraphs=[first+praiseForm.replace('{点}',points.slice(0,firstCount).join('，'))];
+ if(grouped)paragraphs.push(groupLabel(groups[1])+points.slice(firstCount).join('，')+'。');
+ if(knowledge?.trim())paragraphs.push('本节重点：'+knowledge.trim());
  if(note.trim())paragraphs.push(note.trim());
  paragraphs.push(summary||pick('manual-summary',endings)[0]);
  return paragraphs.join('\n\n');
